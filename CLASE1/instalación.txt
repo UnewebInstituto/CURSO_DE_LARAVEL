@@ -1,0 +1,71 @@
+Opción B: Descarga directa del archivo (Recomendado)
+Descarga el archivo .phar directamente usando tu navegador o el comando curl con la bandera -k (inseguro) para saltar el error:
+
+Bash
+curl -k -o composer.phar https://getcomposer.org/composer.phar
+Verifica que se descargó:
+
+Bash
+dir composer.phar
+Ejecuta Composer:
+Para usarlo, simplemente llama al archivo:
+
+Bash
+php composer.phar --version
+
+Al obtener el archivo composer.phar directamente, te saltas el "script de instalación" que es el que está intentando validar el certificado y fallando. Una vez que tengas el archivo composer.
+phar en tu carpeta, puedes moverlo a C:\xampp\php\ y crear un pequeño archivo composer.bat para llamarlo desde cualquier lugar.
+
+Para que Composer funcione permanentemente sin pedirte certificados, una vez que lo tengas, ejecuta:
+
+Bash
+php composer.phar config -g cafile "C:/xampp/php/extras/ssl/cacert.pem"
+
+*************************
+Contenido de composer.bat
+*************************
+
+Si ya descargaste el archivo `composer.phar` (o lo tienes en una carpeta accesible), crear un archivo `.bat` te permitirá ejecutar Composer escribiendo simplemente `composer` en tu terminal, en lugar de `php composer.phar`.
+
+### Contenido del archivo `composer.bat`
+
+Crea un archivo llamado `composer.bat` y coloca dentro el siguiente código:
+
+```batch
+@echo off
+php "%~dp0composer.phar" %*
+
+```
+
+---
+
+### ¿Cómo configurarlo correctamente para tu proyecto?
+
+1. **Ubicación:** Mueve tanto el archivo `composer.phar` que descargaste como el nuevo `composer.bat` a la carpeta `C:\xampp\php\`.
+2. **Por qué `C:\xampp\php\`:** Como esta carpeta ya está en tu "Variable de entorno PATH" de Windows, al colocar los archivos ahí, podrás ejecutar el comando `composer` desde cualquier carpeta de tu terminal.
+3. **Verificación:** Abre una **nueva** terminal y escribe:
+```bash
+composer --version
+
+```
+Si aparece el logo de Composer y la versión, ¡está listo!
+
+### Explicación del contenido del `.bat`:
+
+* `@echo off`: Evita que el terminal muestre cada comando que ejecuta el archivo, dejando la salida limpia.
+* `php`: Llama al ejecutable de PHP.
+* `"%~dp0composer.phar"`: Esta es una variable especial que significa "busca el archivo `composer.phar` en la **misma carpeta** donde está este archivo `.bat`".
+* `%*`: Indica que cualquier comando o parámetro que escribas después (ej. `composer require laravel/ui`) se le pase directamente al archivo `composer.phar`.
+
+### Paso final obligatorio
+
+Una vez que verifiques que el comando `composer` funciona, **no olvides aplicar la configuración global** para que Composer deje de intentar validar certificados externos y use tu archivo local. Ejecuta esto en tu terminal:
+
+```bash
+composer config -g cafile "C:/xampp/php/extras/ssl/cacert.pem"
+
+```
+Incluir en el path del sistema: 
+c:\xampp\php
+
+
