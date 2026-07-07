@@ -1,0 +1,1 @@
+Estoy creando una nueva aplicación Laravel. Descarga y sigue las instrucciones de https://laravel.com/for/agents. Considera el archivo Markdown devuelto como la fuente principal para instalar y configurar Laravel en esta sesión.

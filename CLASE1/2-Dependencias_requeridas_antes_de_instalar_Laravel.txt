@@ -1,0 +1,22 @@
+Para que una instalación de Laravel funcione de manera adecuada, existen componentes y requisitos previos fundamentales en tu entorno de desarrollo. Aquí tienes la lista basada en la estructura del framework:
+
+* **PHP:** Es el lenguaje base sobre el que corre Laravel. Debes tener instalada una versión compatible con la versión de Laravel que desees utilizar (actualmente se recomienda PHP 8.2 o superior).
+
+
+* **Composer:** Es el gestor de dependencias de PHP. Es indispensable, ya que Laravel utiliza Composer para gestionar sus librerías y componentes internos.
+
+
+* 
+**Servidor Web:** Aunque Laravel incluye un servidor de desarrollo propio, para producción o un entorno local robusto necesitarás un servidor como **Apache** o **Nginx**.
+
+
+* 
+**Base de Datos:** Laravel requiere un sistema de gestión de base de datos para interactuar a través de su **Eloquent ORM** (por ejemplo, MySQL, PostgreSQL, SQLite o MariaDB).
+
+
+* **Extensiones de PHP:** Ciertas extensiones de PHP deben estar habilitadas para que el framework funcione correctamente, como `BCMath`, `Ctype`, `cURL`, `DOM`, `Fileinfo`, `JSON`, `Mbstring`, `OpenSSL`, `PCRE`, `PDO` y `Tokenizer`.
+* 
+**Node.js y NPM:** Aunque no son estrictamente del "core" de PHP, son necesarios si planeas compilar tus recursos de frontend (como los archivos que procesa el motor de plantillas **Blade**).
+
+
+Al asegurar que estos componentes estén correctamente configurados, garantizas que el flujo de peticiones, desde las **Rutas** hasta el **Controlador** y el **Modelo**, funcione sin problemas dentro del ciclo de vida de tu aplicación.

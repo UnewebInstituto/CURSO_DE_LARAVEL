@@ -1,0 +1,44 @@
+COMPONENTES DE Laravel
+Laravel es un framework de PHP que utiliza una arquitectura **MVC (Modelo-Vista-Controlador)**. Esta estructura organiza el código para separar la lógica de negocio, la presentación y el flujo de datos.
+
+Aquí tienes los componentes principales que conforman un proyecto de Laravel y su función:
+
+### 1. Modelo (Model)
+
+Es el componente que interactúa con la base de datos. En Laravel, esto se maneja a través de **Eloquent ORM** (Object-Relational Mapper).
+
+* **Función:** Representa una tabla de la base de datos como una clase de PHP. Te permite realizar consultas complejas sin escribir SQL puro, utilizando una sintaxis orientada a objetos.
+
+### 2. Vista (View)
+
+Es la capa de presentación que el usuario final visualiza en su navegador.
+
+* **Función:** Laravel utiliza el motor de plantillas **Blade**. Blade permite escribir código PHP mezclado con HTML de manera limpia y eficiente, facilitando la herencia de plantillas, el uso de directivas (`@if`, `@foreach`) y la inyección de datos desde el controlador.
+
+### 3. Controlador (Controller)
+
+Actúa como el intermediario entre el Modelo y la Vista.
+
+* **Función:** Recibe las peticiones HTTP del usuario, procesa la lógica necesaria (a menudo solicitando información al Modelo) y decide qué Vista debe mostrarse o qué respuesta devolver.
+
+### 4. Rutas (Routes)
+
+El sistema de rutas es el punto de entrada de todas las peticiones.
+
+* **Función:** Define las URLs de tu aplicación y las vincula con un controlador específico. Laravel gestiona las rutas en archivos centralizados (`web.php` para interfaz web, `api.php` para servicios), lo que permite una gestión ordenada de los puntos de acceso.
+
+### 5. Migraciones (Migrations)
+
+Funcionan como un sistema de control de versiones para tu base de datos.
+
+* **Función:** Permiten definir la estructura de las tablas (crear, modificar o eliminar columnas) mediante código PHP. Esto facilita que otros desarrolladores puedan replicar la base de datos simplemente ejecutando un comando, garantizando la consistencia en el entorno de desarrollo y producción.
+
+### 6. Service Container y Service Providers
+
+Estos son componentes avanzados pero fundamentales.
+
+* **Función:** El **Service Container** es el corazón del framework, responsable de gestionar las dependencias de las clases. Los **Service Providers** son los encargados de registrar estas dependencias y configurar los servicios del framework (como las rutas, eventos o la conexión a la base de datos) durante el arranque de la aplicación.
+
+---
+
+**Nota:** Estos componentes trabajan de forma integrada para que puedas desarrollar aplicaciones robustas. Al comprender cómo fluye una petición desde la **Ruta** hacia el **Controlador**, luego al **Modelo** y finalmente a la **Vista**, dominarás el ciclo de vida de cualquier aplicación en Laravel.

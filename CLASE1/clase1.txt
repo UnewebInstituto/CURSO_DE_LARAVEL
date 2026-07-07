@@ -1,550 +1,93 @@
+CUAM
+Colegio Universitario de Administración y Mercadeo
+Zona Industrial de Valencia - Carabobo
+San Felipe - Yaracuy
+
+César
+José
+Carlos
+Andrés
+Richard
+Arnaldo
+
 https://laravel.com/
 
-https://laravel.com/docs/13.x
-
-
-Para dominar estos fundamentos de Laravel, es esencial entender que este framework no solo facilita la escritura de código, sino que impone una estructura (convención sobre configuración) que hace que las aplicaciones sean escalables y mantenibles.
-
----
-COMPONENTES DE Laravel
-Laravel es un framework de PHP que utiliza una arquitectura **MVC (Modelo-Vista-Controlador)**. Esta estructura organiza el código para separar la lógica de negocio, la presentación y el flujo de datos.
-
-Aquí tienes los componentes principales que conforman un proyecto de Laravel y su función:
-
-### 1. Modelo (Model)
-
-Es el componente que interactúa con la base de datos. En Laravel, esto se maneja a través de **Eloquent ORM** (Object-Relational Mapper).
-
-* **Función:** Representa una tabla de la base de datos como una clase de PHP. Te permite realizar consultas complejas sin escribir SQL puro, utilizando una sintaxis orientada a objetos.
-
-### 2. Vista (View)
-
-Es la capa de presentación que el usuario final visualiza en su navegador.
-
-* **Función:** Laravel utiliza el motor de plantillas **Blade**. Blade permite escribir código PHP mezclado con HTML de manera limpia y eficiente, facilitando la herencia de plantillas, el uso de directivas (`@if`, `@foreach`) y la inyección de datos desde el controlador.
-
-### 3. Controlador (Controller)
-
-Actúa como el intermediario entre el Modelo y la Vista.
-
-* **Función:** Recibe las peticiones HTTP del usuario, procesa la lógica necesaria (a menudo solicitando información al Modelo) y decide qué Vista debe mostrarse o qué respuesta devolver.
-
-### 4. Rutas (Routes)
-
-El sistema de rutas es el punto de entrada de todas las peticiones.
-
-* **Función:** Define las URLs de tu aplicación y las vincula con un controlador específico. Laravel gestiona las rutas en archivos centralizados (`web.php` para interfaz web, `api.php` para servicios), lo que permite una gestión ordenada de los puntos de acceso.
-
-### 5. Migraciones (Migrations)
-
-Funcionan como un sistema de control de versiones para tu base de datos.
-
-* **Función:** Permiten definir la estructura de las tablas (crear, modificar o eliminar columnas) mediante código PHP. Esto facilita que otros desarrolladores puedan replicar la base de datos simplemente ejecutando un comando, garantizando la consistencia en el entorno de desarrollo y producción.
-
-### 6. Service Container y Service Providers
-
-Estos son componentes avanzados pero fundamentales.
-
-* **Función:** El **Service Container** es el corazón del framework, responsable de gestionar las dependencias de las clases. Los **Service Providers** son los encargados de registrar estas dependencias y configurar los servicios del framework (como las rutas, eventos o la conexión a la base de datos) durante el arranque de la aplicación.
-
----
-
-**Nota:** Estos componentes trabajan de forma integrada para que puedas desarrollar aplicaciones robustas. Al comprender cómo fluye una petición desde la **Ruta** hacia el **Controlador**, luego al **Modelo** y finalmente a la **Vista**, dominarás el ciclo de vida de cualquier aplicación en Laravel.
-
-¿Te gustaría profundizar en cómo se relacionan estos componentes para crear una funcionalidad específica en tu proyecto " "?S
-
----
-
-### 1. Instalación de Composer y Laravel
-
-**Teoría:**
-Laravel gestiona sus dependencias a través de **Composer**, el gestor de paquetes de PHP. Composer es indispensable porque descarga tanto el núcleo de Laravel como todas las librerías de terceros necesarias para que el sistema funcione.
-
-**Práctica:**
-
-1. **Instalar Composer:** Descárgalo desde 
-[getcomposer.org](https://getcomposer.org/). 
-
-C:\Users\All Users\ComposerSetup\bin
-
-C:\ProgramData\ComposerSetup\bin
-
-
-Verifica con `composer --version` en tu terminal.
-2. **Instalar el Instalador de Laravel (opcional pero recomendado):**
-```bash
-
-composer config -g cafile "C:/xampp/apache/bin/cacert.pem"
-
-composer global require laravel/installer
-
-```
-
-3. **Crear un proyecto nuevo:**
-```bash
-laravel new nombre-del-proyecto
-
-# O mediante Composer directamente:
-composer create-project laravel/laravel nombre-del-proyecto
-
-```
-**********
-ATENCIÓN:
-Las opciones que estás viendo en tu terminal corresponden a los **Starter Kits** (kits de inicio) oficiales de Laravel. Estos kits están diseñados para acelerar drásticamente el desarrollo de tu aplicación, ya que te proporcionan toda la lógica y estructura necesaria para funciones comunes, especialmente la **autenticación de usuarios** (login, registro, recuperación de contraseña, etc.).
-
-Aquí te explico qué significa cada opción para que elijas la que mejor se adapte a lo que buscas aprender o construir:
-
-* **None (Ninguno):** Laravel instalará solo el esqueleto básico del framework. Es la opción ideal si quieres aprender a construir todo desde cero o si tu proyecto no requiere un sistema de usuarios predefinido.
-
-
-* **React:** Instala Laravel junto con el framework de JavaScript **React**. Es la opción recomendada si ya tienes experiencia con React o si planeas construir una interfaz de usuario altamente interactiva y basada en componentes.
-
-
-* 
-**Svelte:** Instala Laravel integrado con **Svelte**, un framework de JavaScript moderno conocido por ser extremadamente ligero y rápido, ya que compila tu código en JavaScript puro durante el desarrollo.
-
-
-* **Vue:** Instala Laravel junto con **Vue.js**. Esta es una combinación muy popular y tradicionalmente integrada en Laravel; ofrece una curva de aprendizaje amigable y mucha potencia para interfaces dinámicas.
-
-
-* **Livewire:** Esta es la opción "estrella" para muchos desarrolladores de Laravel. **Livewire** te permite construir interfaces dinámicas y modernas usando únicamente **PHP**, sin necesidad de escribir código JavaScript complejo. Se integra a la perfección con Blade (el motor de vistas de Laravel).
-
-
-
-### ¿Cuál deberías elegir?
-
-* Si estás **aprendiendo los fundamentos** (MVC, rutas, vistas), te recomiendo seleccionar **`none`** o **`livewire`**. Livewire te mantendrá dentro de tu zona de confort con PHP y te permitirá ver resultados rápidos sin perderte en configuraciones complejas de JavaScript.
-
-
-* Si tu objetivo es **desarrollo Frontend profesional** y ya dominas React o Vue, elige el kit correspondiente para aprovechar la potencia de esos ecosistemas dentro de tu proyecto Laravel.
-
-**********
-
-La elección entre **Pest** y **PHPUnit** depende principalmente de tus preferencias personales sobre cómo prefieres escribir el código de tus pruebas, ya que ambos son excelentes y funcionan perfectamente con Laravel.
-
-Aquí te presento los factores para ayudarte a decidir:
-
-### 1. Pest (Opción recomendada para empezar)
-
-Pest es un framework de pruebas construido **sobre** PHPUnit, diseñado para ser extremadamente intuitivo y legible.
-
-* **Por qué elegirlo:** Tiene una sintaxis mucho más limpia y minimalista, inspirada en frameworks de pruebas modernos (como Jest en JavaScript). Es muy fácil de leer, lo que ayuda a que el código de tus pruebas se sienta casi como lenguaje natural.
-* **Curva de aprendizaje:** Muy baja. Si eres nuevo en testing, Pest te hará el proceso mucho más amigable.
-* **Ejemplo:**
-```php
-test('la página de inicio carga correctamente', function () {
-    $this->get('/')->assertStatus(200);
-});
-
-```
-
-
-
-### 2. PHPUnit (El estándar de la industria)
-
-PHPUnit es la base sobre la que se asienta el ecosistema de pruebas de PHP desde hace muchos años.
-
-* **Por qué elegirlo:** Es el estándar de facto. Si tu intención es trabajar en proyectos empresariales grandes o si necesitas integrar tus pruebas con herramientas de terceros que requieran configuraciones muy específicas, PHPUnit es la apuesta más segura y conservadora.
-* **Curva de aprendizaje:** Un poco más técnica. Requiere definir clases y métodos con una estructura más rígida (basada en el estándar de Clases de PHP).
-* **Ejemplo:**
-```php
-public function test_la_pagina_de_inicio_carga_correctamente()
-{
-    $this->get('/')->assertStatus(200);
-}
-
-```
-
-
-
----
-
-### ¿Cuál elegir para " "?
-
-* **Elige Pest [0]** si quieres una experiencia de desarrollo más rápida, divertida y moderna. Es la opción preferida por la comunidad actual de Laravel debido a su legibilidad y simplicidad.
-
-
-* **Elige PHPUnit [1]** si prefieres apegarte a la estructura clásica y tradicional, o si planeas en el futuro llevar tus conocimientos de testing a otros frameworks de PHP que no necesariamente usen Pest.
-
-**Recomendación:** Para este curso de fundamentos, **selecciona `[0] Pest**`. Te permitirá enfocarte en aprender qué es lo que estás probando en lugar de luchar con la sintaxis de las clases de prueba.
-
-
-**********
-
-Esta es una funcionalidad reciente en el ecosistema de Laravel. **Laravel Boost** es una herramienta diseñada para potenciar la integración de **inteligencia artificial** directamente en tu flujo de trabajo de desarrollo.
-
-### ¿Qué hace exactamente?
-
-Al seleccionar `yes`, el instalador configurará automáticamente las dependencias y la estructura necesaria para que tu editor de código (como VS Code) pueda interactuar de forma más inteligente con tu proyecto.
-
-* 
-**Mejora la asistencia de IA:** Optimiza el contexto que Laravel proporciona a herramientas de IA para que los autocompletados y sugerencias de código sean más precisos.
-
-
-* 
-**Integración:** Prepara archivos de configuración para que la IA entienda mejor la estructura de tu proyecto (modelos, rutas y controladores) sin tener que indexar todo manualmente.
-
-
-
----
-
-### ¿Deberías instalarlo?
-
-* **Elige `yes` [Default]:** Si planeas usar herramientas como GitHub Copilot, Cursor, o cualquier otra IA para ayudarte a escribir código. Te ahorrará tiempo de configuración al estructurar las pistas que la IA necesita para ser más efectiva.
-
-
-* 
-**Elige `no`:** Si prefieres un entorno limpio, sin configuraciones automáticas de herramientas de terceros, o si no utilizas asistentes de código basados en IA en tu flujo de trabajo diario.
-
-
-
-**Recomendación:** Dado que estás comenzando con tu proyecto ** ** y quieres aprender a dominar Laravel, seleccionar **`yes`** es una excelente opción. A medida que tu código crezca, tener una IA que entienda la estructura de tus modelos y controladores (basado en la arquitectura MVC que estamos viendo) será de gran ayuda para resolver errores o sugerir mejoras.
-
-**********
-
-BASES DE DATOS:
-Esta es la fase final de la configuración de ** **. El instalador te está preguntando si deseas ejecutar las **migraciones de base de datos** predeterminadas.
-
-### ¿Qué significa esto?
-
-Las "migraciones" son esencialmente archivos de código (en PHP) que Laravel utiliza para crear las tablas necesarias en tu base de datos automáticamente.
-
-* Al seleccionar **`yes`**, Laravel creará las tablas fundamentales (como la de `users`, `password_reset_tokens`, `failed_jobs`, etc.) directamente en tu base de datos **MariaDB**.
-* **¿Por qué es importante?** Si no corres estas migraciones ahora, cuando intentes registrar un usuario o iniciar sesión en tu aplicación más adelante, Laravel no encontrará las tablas necesarias en la base de datos y recibirás un error de "Table not found".
-
-### Paso previo necesario
-
-Como elegiste **MariaDB**, asegúrate de que:
-
-1. **XAMPP esté activo:** Debes tener el panel de control de XAMPP abierto y haber iniciado el servicio **MySQL** (que en XAMPP gestiona tanto MySQL como MariaDB).
-2. **Base de datos creada:** Laravel necesita una base de datos donde guardar estas tablas. Antes de presionar "yes", asegúrate de haber creado una base de datos vacía (usualmente mediante **phpMyAdmin** en `http://localhost/phpmyadmin`) llamada ` `.
-3. **Configuración `.env`:** Laravel debe conocer el nombre de esa base de datos. En la carpeta raíz de tu proyecto ` `, abre el archivo `.env` y busca estas líneas, asegurándote de que coincidan con tu configuración:
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE= 
-DB_USERNAME=root
-DB_PASSWORD=
-
-```
-
-
-
-**Recomendación:**
-Responde **`yes`**. Es el comportamiento estándar para empezar a desarrollar. Si el proceso termina exitosamente, verás un mensaje confirmando que las tablas fueron creadas (ej. `Migrating: ...`).
-
-
-
-
-**********
-4. **Ejecutar el servidor local:** Navega a la carpeta y ejecuta:
-```bash
-php artisan serve
-
-```
-
-
-Esto levantará un servidor local (normalmente en `http://127.0.0.1:8000`).
-
----
-
-### 2. Flujo de trabajo en el desarrollo con Laravel
-
-**Teoría:**
-Laravel sigue el patrón **MVC (Modelo-Vista-Controlador)**, pero en el día a día, el flujo de una petición HTTP es el siguiente:
-
-1. **Ruta (`routes/web.php`):** La puerta de entrada que escucha la URL.
-2. **Controlador (`app/Http/Controllers`):** El "cerebro" que procesa la lógica de la petición.
-3. **Modelo (`app/Models`):** La capa que se comunica con la base de datos (Eloquent ORM).
-4. **Vista (`resources/views`):** La capa de presentación que recibe los datos y los muestra al usuario (usando el motor **Blade**).
-
-**Práctica:**
-Un flujo de trabajo profesional siempre utiliza `php artisan`.
-
-* Para crear componentes: `php artisan make:controller MiControlador`.
-* Para ejecutar migraciones: `php artisan migrate`.
-* Para desarrollo rápido, mantén siempre una terminal con `php artisan serve` y otra para tus comandos de Artisan.
-
----
-
-### 3. Cómo crear rutas en Laravel
-
-**Teoría:**
-Las rutas definen qué debe ocurrir cuando un usuario accede a una URL específica. En Laravel, estas se gestionan principalmente en el archivo `routes/web.php`. Las rutas pueden responder a diferentes verbos HTTP (`GET`, `POST`, `PUT`, `DELETE`).
-
-**Práctica:**
-Aquí tienes ejemplos de cómo definir rutas básicas:
-
-* **Ruta simple:**
-```php
-Route::get('/saludo', function () {
-    return "Hola, mundo!";
-});
-
-```
-
-
-* **Ruta que apunta a un Controlador:**
-```php
-// La sintaxis es [Clase, método]
-Route::get('/productos', [ProductController::class, 'index']);
-
-```
-
-
-* **Ruta con parámetros:**
-```php
-Route::get('/usuario/{id}', function ($id) {
-    return "Usuario con ID: " . $id;
-});
-
-```
-Conectar una ruta a un controlador es el primer paso fundamental para crear aplicaciones estructuradas en Laravel.
-
-Sigue estos pasos para lograr ese "Hola Mundo" organizado bajo el patrón MVC:
-
-### 1. Crear el Controlador
-
-Abre tu terminal en la raíz del proyecto y ejecuta el siguiente comando:
-
-```bash
-php artisan make:controller HolaController
-
-```
-
-Esto creará un archivo en `app/Http/Controllers/HolaController.php`.
-
-### 2. Definir la lógica en el Controlador
-
-Abre el archivo recién creado y define un método que devuelva una respuesta. En un caso real, esto devolvería una vista, pero por ahora devolveremos un string para probar la conexión:
-
-```php
-<?php
-
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-
-class HolaController extends Controller
-{
-    public function index()
-    {
-        return "¡Hola Mundo desde el Controlador!";
-    }
-}
-
-```
-
-### 3. Configurar la Ruta
-
-Ahora, debemos decirle a Laravel que cuando alguien visite una URL específica, invoque el método `index` de nuestro `HolaController`.
-
-Abre `routes/web.php` y añade lo siguiente:
-
-```php
-use App\Http\Controllers\HolaController;
-use Illuminate\Support\Facades\Route;
-
-Route::get('/hola', [HolaController::class, 'index']);
-
-```
-
-### 4. Prueba el flujo
-
-1. Asegúrate de que tu servidor esté corriendo: `php artisan serve`.
-2. Abre tu navegador y dirígete a: `http://127.0.0.1:8000/hola`.
-
-Deberías ver en pantalla el mensaje: **"¡Hola Mundo desde el Controlador!"**.
-
----
-
-### ¿Qué acabamos de hacer? (El flujo de trabajo)
-
-* **La Ruta (`web.php`):** Actuó como el recepcionista, capturando la petición `/hola`.
-* **El Controlador (`HolaController`):** Actuó como el trabajador encargado de procesar la petición y generar la respuesta.
-
----
-
-El motor de plantillas **Blade** es una de las herramientas más potentes de Laravel. Nos permite escribir código HTML limpio y combinarlo con lógica de PHP de forma elegante.
-
-Vamos a conectar tu controlador con una vista.
-
-### 1. Crear el archivo de vista
-
-Las vistas se guardan en la carpeta `resources/views`. Crea un nuevo archivo llamado `hola.blade.php` en esa ruta.
-
-*Nota: La extensión `.blade.php` es obligatoria para que Laravel sepa que debe procesar las directivas de Blade.*
-
-Copia este código en `resources/views/hola.blade.php`:
-
-```html
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Mi Primera Vista</title>
-    <style>
-        body { font-family: sans-serif; text-align: center; margin-top: 50px; }
-        h1 { color: #ff2d20; }
-    </style>
-</head>
-<body>
-    <h1>¡Hola Mundo desde una vista Blade!</h1>
-    <p>Estamos aprendiendo a renderizar HTML desde el controlador.</p>
-</body>
-</html>
-
-```
-
-### 2. Actualizar el Controlador
-
-Ahora, vamos a modificar `HolaController.php` para que, en lugar de retornar un string, retorne la vista que acabamos de crear utilizando el helper `view()`.
-
-Abre `app/Http/Controllers/HolaController.php`:
-
-```php
-<?php
-
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-
-class HolaController extends Controller
-{
-    public function index()
-    {
-        // El string 'hola' hace referencia al archivo resources/views/hola.blade.php
-        return view('hola');
-    }
-}
-
-```
-
-### 3. Visualizar el resultado
-
-1. Asegúrate de que el servidor siga corriendo (`php artisan serve`).
-2. Actualiza tu navegador en `http://127.0.0.1:8000/hola`.
-
-Ahora verás tu HTML renderizado con los estilos definidos.
-
----
-
-### ¿Cómo funciona la magia?
-
-* **Helper `view()`:** Cuando llamas a `view('hola')`, Laravel busca automáticamente un archivo llamado `hola.blade.php` dentro de la carpeta `resources/views`.
-* **Separación de responsabilidades:** El controlador ahora solo se encarga de "qué mostrar" (la vista), y la vista se encarga de "cómo se ve" (el HTML).
-
-### Un paso extra: Pasar datos a la vista
-
-Para que tu aplicación sea dinámica, normalmente querrás enviar datos desde el controlador a la vista. Puedes hacerlo así:
-
-En el controlador:
-
-```php
-public function index()
-{
-    $nombre = "Estudiante de Laravel";
-    return view('hola', ['nombreUsuario' => $nombre]);
-}
-
-```
-
-Y en tu archivo `hola.blade.php`, puedes imprimir esa variable usando llaves dobles:
-
-```html
-<h1>Hola, {{ $nombreUsuario }}</h1>
-
-```
-
-Pasar datos desde el controlador hacia la vista es el mecanismo que convierte una página estática en una **aplicación dinámica**. Esto es esencial para mostrar información de bases de datos, perfiles de usuario o resultados de formularios.
-
-Vamos a implementar el paso de variables con un ejemplo práctico.
-
-### 1. Actualizar el Controlador
-
-Vamos a pasar un par de variables desde `HolaController.php` hacia la vista. Usaremos el método `compact()` de PHP, que es la forma más elegante y común en Laravel para pasar variables.
-
-Modifica tu `app/Http/Controllers/HolaController.php`:
-
-```php
-<?php
-
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-
-class HolaController extends Controller
-{
-    public function index()
-    {
-        // Definimos los datos que queremos enviar
-        $nombre = "Aprendiz de Laravel";
-        $tecnologias = ['PHP', 'Laravel', 'Blade', 'Eloquent'];
-
-        // 'compact' crea un array asociativo automáticamente: ['nombre' => $nombre, 'tecnologias' => $tecnologias]
-        return view('hola', compact('nombre', 'tecnologias'));
-    }
-}
-
-```
-
-### 2. Actualizar la Vista
-
-Ahora, en `resources/views/hola.blade.php`, vamos a recibir y mostrar esas variables. Laravel usa la sintaxis `{{ }}` para imprimir datos (y los escapa automáticamente para evitar ataques XSS).
-
-Modifica tu archivo de vista:
-
-```html
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Vista Dinámica</title>
-</head>
-<body>
-    <h1>Bienvenido, {{ $nombre }}</h1>
-
-    <p>Estamos trabajando con estas tecnologías:</p>
-
-    <ul>
-        @foreach($tecnologias as $tech)
-            <li>{{ $tech }}</li>
-        @endforeach
-    </ul>
-</body>
-</html>
-
-```
-
-### ¿Qué acabas de aprender aquí?
-
-1. **Directivas de Blade:** Usamos `@foreach` y `@endforeach`. Blade permite usar directivas de control de flujo (como `if`, `foreach`, `for`) directamente en el HTML de forma muy limpia.
-2. **`compact()`:** Es un helper de PHP que Laravel aprovecha mucho. Si tienes una variable `$nombre`, `compact('nombre')` la convierte en una llave de array con su valor.
-3. **Interpolación:** Usar `{{ }}` es la forma estándar de inyectar variables en tus vistas.
-
----
-
-DESCRIPCIÓN DE Boost
-
-Esta interfaz corresponde a la configuración de **Laravel Boost**, una herramienta diseñada para potenciar la asistencia de Inteligencia Artificial (IA) en tu proyecto. Lo que ves aquí es el paso final de personalización para que tu entorno de desarrollo trabaje en sintonía con asistentes de IA (como Cursor, Windsurf, o GitHub Copilot).
-
-Aquí te describo qué significa cada una de estas características:
-
-* **AI Guidelines (`guidelines`):** Crea archivos de configuración (usualmente llamados `.cursorrules` o similares) que contienen las "instrucciones maestras" para la IA. Define cómo debe escribir código la IA, qué estándares de estilo seguir, qué versiones de Laravel usar y cómo debe estructurar las soluciones. Esto evita que la IA sugiera código genérico y la obliga a seguir tus mejores prácticas.
-* **Agent Skills (`skills`):** Son pequeñas "habilidades" o herramientas personalizadas que la IA puede ejecutar. Por ejemplo, puede incluir comandos preconfigurados para limpiar caché, ejecutar pruebas específicas, o buscar errores comunes en tu base de datos de manera automatizada. Es como darle "superpoderes" a la IA para que interactúe directamente con tu sistema de archivos y entorno.
-* **Boost MCP Server Configuration (`mcp`):** Esta es la parte más avanzada. **MCP** significa *Model Context Protocol*. Permite que herramientas de IA externas (o agentes de IA) se conecten de forma segura a tu proyecto para "leer" y "entender" tu código en tiempo real. Es el protocolo que permite a un agente de IA no solo ver el archivo que tienes abierto, sino navegar por tus controladores, modelos y rutas de forma estructurada para ayudarte a depurar o escribir funcionalidades completas.
-
-### ¿Qué te recomiendo hacer?
-
-Al ser un proyecto nuevo, **te sugiero seleccionar todas las opciones** (generalmente puedes escribir `guidelines,skills,mcp` y presionar Enter).
-
-1. **¿Por qué?** Porque configura automáticamente la infraestructura para que cualquier IA que utilices sea extremadamente eficiente con tu código.
-2. **El resultado:** Verás que, al abrir tu proyecto en un editor como Cursor o VS Code, la IA ya sabrá qué estás haciendo sin que tú tengas que explicarle el contexto cada vez.
-
-En resumen: esta pantalla está preparando a **Interaxia** para que sea "IA-friendly", permitiendo que los asistentes de programación no solo sean chatbots, sino verdaderos "agentes" capaces de ayudarte a programar con mayor precisión. ¿Quieres que seleccionemos todas estas funciones para avanzar?
-
-
----
-
+https://thebootstrappedfounder.com/taylor-otwell-the-quite-entrepreneurial-creator-of-laravel/
+
+///////////////////////////////////////////////////////////
+
+PATRÓN DE DISEÑO MVC
+MODEL-VIEW-CONTROLLER
+
+APLICA A NIVEL WEB / CLIENTE SERVIDOR / MOVIL Y OTROS
+HACIENDO LAS CONSIDERACIONES PROPIAS DE DESARROLLO Y DESPLIEGUE
+PARA CADA entorno
+  
+web
+VISTA                                                     CONTROLADOR(ES)
++----------------------+          +-----------+          +--------------+
+ NAVEGADOR WEB                                            SERVIDOR(ES)
+ (interpreta)
+ ----------------------     --->    Internet      --->      +--------+ 
+ [ XML     |    JSON  ]                                      C1,...,Cn
+ [ CSS     |      JS  ]              TCP/IP                 +--------+
+ [       HTML         ]     <---                  <---
+ ----------------------
++----------------------+          +------------+          +-------------+
+
+En LARAVEL, el motor de                                        ^   | 
+plantillas, es responsable                                     |   v
+de la mejora en la 
+presentación de los datos.                                 MODELO (DE datos)
+(Nombre: BLADE)                                            +------------+
+                               
+                                                            BBDD
+                                                           +------------+
+                                                           BBDD RELACIONALES (SQL):
+                                                           MYSQL/MARIADB
+                                                           POSTGRESQL *
+                                                           SQLITE
+                                                           SQLSERVER
+                                                           ORACLE
+
+                                                           BBDD NO RELACIONALES (NOSQL)
+                                                           MONGODB
+                                                           CASANDRA
+
+CASO web:                                                  
+HTML: HyperText Markup Language                            INTERPRETE DE PHP (LENGUAJE DE PROGRAMACIÓN)
+CSS: Cascading Style Sheets                                ENTORNO DE EJECUCIÓN WEB
+JS: LENGUAJE DE PROGRAMACIÓN JAVASCRIT                     (APACHE / NGINX)
+Intercambio de datos:
+XML: Extensible Markup Language
+JSON: JavaScript Object Notation
+
+Fuentes documentales:
+https://developer.mozilla.org/es/docs/Web/HTML
+https://developer.mozilla.org/es/docs/Web/CSS
+https://developer.mozilla.org/es/docs/Web/JavaScript
+https://developer.mozilla.org/es/docs/Web/XML
+https://developer.mozilla.org/es/docs/Web/JavaScript/Reference/Global_Objects/JSON
+
+DEPENDENCIAS PARA LA EJECUCIÓN DE UN PROYECTO LARAVEL 
+
+6-[ LARAVEL                           ] :                                   (EN CLASE)
+5-[ COMPOSER                          ] : https://getcomposer.org/download/ (EN CLASE)
+4-[ NODEJS                            ] : https://nodejs.org/en/download/current
+3-[ MOTOR DE BBDD (por ej POSTGRESQL) ] : https://www.postgresql.org/download/ (POSTGRESQL)
+2-[ SERVIDOR WEB APACHE O NGINX       ] : https://www.apachefriends.org/es/index.html (XAMPP)
+1-[ VISUAL STUDIO CODE / EDITOR       ] : https://code.visualstudio.com/download?_exp_download=d53503e735
+0-[ SISTEMA OPERATIVO                 ] : Windows / Linux Devian / Otros (LISTO)
+
+
+HORARIO:
+
+
+DÍAS SEMANA 1: MARTES Y JUEVES
+10:00am - 1:00pm
+
+RECESO: 11:30 AM (10 MINUTOS)
+
+DÍAS SEMANA 2: LUNES, MARTES Y MIÉRCOLES
+10:00am - 1:00pm
 

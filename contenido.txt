@@ -1,6 +1,6 @@
 1 . Instalación de Composer y Laravel 
 2 . Flujo de trabajo en el desarrollo con Laravel 
-3 . Cómo crear rutas en Laravel
+3 . Cómo crear rutas en Laravel (https://laravel.com/docs/13.x/routing)
 4 . Rutas para formularios en Laravel (método POST) 
 5 . Sistema de plantillas y layout 
 6 . Creación y uso de controladores 
@@ -10,3 +10,4 @@
 10 . Configuración de bases de datos y entorno de desarrollo 
 11 . Paginación, y carga de registros con seeders y model factories 
 12 . Eloquent el ORM de Laravel
+
