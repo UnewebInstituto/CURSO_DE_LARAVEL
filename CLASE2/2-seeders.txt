@@ -1,0 +1,131 @@
+## 1. Seeders
+
+**Qué son:** clases PHP que insertan datos iniciales o de prueba en la base de datos de forma programática y repetible. Resuelven el problema de "necesito datos para probar mi aplicación" sin tener que llenarlos a mano por la interfaz cada vez que reseteas la BD.
+
+**Cuándo se usan:**
+- Datos de catálogo que siempre deben existir (ej. estados de factura, roles de usuario, un usuario administrador inicial)
+
+- Poblar la BD con datos de prueba para desarrollo/demos
+
+**Comando para crear uno:**
+```bash
+php artisan make:seeder ClienteSeeder
+```
+
+**Ejemplo básico (inserción manual):**
+```php
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+
+use App\Models\Cliente; #<-- importante
+
+class ClienteSeeder extends Seeder
+{
+    public function run(): void
+    {
+        Cliente::create([
+            'nombre' => 'Comercial El Progreso S.A.',
+            'nit' => '900123456-7',
+            'email' => 'contacto@elprogreso.com',
+            'telefono' => '3001234567',
+            'direccion' => 'Calle 10 #5-20, Bogotá',
+        ]);
+    }
+}
+```
+
+**Ejecutar:**
+```bash
+php artisan db:seed --class=ClienteSeeder
+```
+
+O registrar todos en `DatabaseSeeder.php` (`database/seeders/DatabaseSeeder.php`) para correrlos juntos con:
+```bash
+php artisan db:seed
+```
+
+O de una vez con las migraciones:
+```bash
+php artisan migrate:fresh --seed
+```
+********************************************
+**** Sembrado de uno o varios registros ****
+********************************************
+
+Un seeder no está limitado a un solo `create()`; puedes insertar tantos registros como necesites dentro del método `run()`. Aquí las formas típicas de hacerlo:
+
+## Opción 1: Varios `create()` explícitos (datos controlados)
+
+Útil cuando quieres datos específicos y reconocibles (por ejemplo, para hacer demos en clase donde necesitas nombres reales que puedas mencionar):
+
+```php
+class ClienteSeeder extends Seeder
+{
+    public function run(): void
+    {
+        Cliente::create([
+            'nombre' => 'Comercial El Progreso S.A.',
+            'nit' => '900123456-7',
+            'email' => 'contacto@elprogreso.com',
+            'telefono' => '3001234567',
+            'direccion' => 'Calle 10 #5-20, Bogotá',
+        ]);
+
+        Cliente::create([
+            'nombre' => 'Distribuidora Andina Ltda.',
+            'nit' => '900987654-3',
+            'email' => 'ventas@andina.com',
+            'telefono' => '3109876543',
+            'direccion' => 'Carrera 45 #12-30, Medellín',
+        ]);
+
+        Cliente::create([
+            'nombre' => 'Tecnología y Suministros S.A.S.',
+            'nit' => '901234567-8',
+            'email' => 'info@tecnosuministros.com',
+            'telefono' => '3201112233',
+            'direccion' => 'Av. Circunvalar #8-15, Cali',
+        ]);
+    }
+}
+```
+
+## Opción 2: Array de datos + `insert()` o bucle (varios registros sin escribir cada `create()`)
+
+```php
+public function run(): void
+{
+    $clientes = [
+        ['nombre' => 'Comercial El Progreso S.A.', 'nit' => '900123456-7', 'email' => 'contacto@elprogreso.com', 'telefono' => '3001234567', 'direccion' => 'Bogotá'],
+        ['nombre' => 'Distribuidora Andina Ltda.', 'nit' => '900987654-3', 'email' => 'ventas@andina.com', 'telefono' => '3109876543', 'direccion' => 'Medellín'],
+        ['nombre' => 'Tecnología y Suministros S.A.S.', 'nit' => '901234567-8', 'email' => 'info@tecno.com', 'telefono' => '3201112233', 'direccion' => 'Cali'],
+    ];
+
+    foreach ($clientes as $cliente) {
+        Cliente::create($cliente);
+    }
+}
+```
+
+**Nota importante sobre `insert()` vs `create()` en bucle:** si usas `Cliente::insert($clientes)` (inserción masiva directa) en lugar del `foreach` con `create()`, es más rápido porque hace un solo `INSERT` SQL con múltiples filas, pero **no dispara los eventos de Eloquent** (`creating`, `created`, observers, etc.) ni respeta casts/mutators del modelo. Para un seeder simple no suele importar, pero vale la pena mencionarlo en clase como diferencia conceptual entre "hablarle a Eloquent" y "hablarle directo a la BD".
+
+## Opción 3: Combinando con Factory (para volumen)
+
+Como vimos antes, si necesitas muchos registros (no solo 3-5 curados a mano), la combinación natural es usar la factory dentro del seeder:
+
+```php
+public function run(): void
+{
+    // 3 clientes específicos y reconocibles para las demos
+    Cliente::create([...]);
+    Cliente::create([...]);
+    Cliente::create([...]);
+
+    // + 50 clientes adicionales con datos aleatorios para volumen
+    Cliente::factory()->count(50)->create();
+}
+```
+

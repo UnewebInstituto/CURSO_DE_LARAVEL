@@ -6,8 +6,8 @@
 6 . Creación y uso de controladores 
 7 . Creación de registros 
 8 . Validación de datos del usuario 
-9 . Creación de tablas con el sistema de migraciones 
-10 . Configuración de bases de datos y entorno de desarrollo 
-11 . Paginación, y carga de registros con seeders y model factories 
-12 . Eloquent el ORM de Laravel
+9 . Creación de tablas con el sistema de migraciones <--
+10 . Configuración de bases de datos y entorno de desarrollo <--
+11 . Paginación, y carga de registros con seeders y model factories <--
+12 . Eloquent el ORM de Laravel <--
 

@@ -1,0 +1,48 @@
+Hay que distinguir dos cosas: **Tinker** (that command in the example) es en sí un comando de `php artisan`, así que técnicamente ya lo estás usando. Pero si buscas ejecutar esa línea **directamente desde la terminal sin entrar al modo interactivo**, sí existe:
+
+## Opción 1: `tinker --execute` (ejecución directa, sin entrar al shell interactivo)
+
+```bash
+php artisan tinker --execute="Producto::factory()->count(50)->create();"
+```
+
+Esto ejecuta el código y termina, sin dejarte dentro del prompt interactivo (`>>>`). Es el equivalente más directo a "correr esa línea desde artisan" en un solo comando, útil para scripts o para no tener que escribir y salir manualmente en clase.
+
+## Opción 2: Modo interactivo (lo que ya conocías)
+
+```bash
+php artisan tinker
+```
+Y dentro del prompt:
+```php
+Producto::factory()->count(50)->create();
+```
+
+## Opción 3: La forma "correcta" y repetible — usar un Seeder
+
+Aquí está el matiz importante para explicar en clase: **`tinker` es para pruebas puntuales y exploración**, no para dejar un proceso repetible como parte del proyecto. Si lo que quieres es que ese comando de generar 50 productos quede documentado y se pueda volver a ejecutar cuantas veces sea necesario (por ejemplo, cada vez que alguien clona el repo o resetea la BD), el "artisan nativo" equivalente es un **seeder**:
+
+```bash
+php artisan make:seeder ProductoSeeder
+```
+
+```php
+// database/seeders/ProductoSeeder.php
+public function run(): void
+{
+    Producto::factory()->count(50)->create();
+}
+```
+
+Y ejecutarlo con:
+```bash
+php artisan db:seed --class=ProductoSeeder
+```
+
+## Comparación para que quede claro el matiz en la demo
+
+| Comando | Persiste el código en el proyecto | Uso recomendado |
+|---|---|---|
+| `php artisan tinker` (interactivo) | No | Explorar/probar algo puntual |
+| `php artisan tinker --execute="..."` | No | Ejecutar algo puntual desde script o CI, sin entrar al shell |
+| `php artisan db:seed --class=X` | Sí (vive en el seeder) | Poblar datos de forma repetible, versionada en Git |

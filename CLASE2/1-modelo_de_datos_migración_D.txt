@@ -1,0 +1,58 @@
+Aquí tienes la propuesta completa de modelo de datos para el sistema de facturación.
+
+## Nombre de la base de datos
+
+```
+facturacion_db
+```
+(en minúsculas, snake_case — convención recomendada para PostgreSQL y Laravel)
+
+## Entidades
+
+**1. clientes**
+Almacena la información de las personas o empresas a quienes se les emite una factura.
+- `id` — identificador único
+- `nombre` — nombre o razón social
+- `nit` — número de identificación tributaria (único)
+- `email` — correo de contacto
+- `telefono` — teléfono de contacto
+- `direccion` — dirección física
+- `created_at`, `updated_at`
+
+**2. productos**
+Catálogo de productos o servicios que la empresa vende y que aparecerán en las facturas.
+- `id`
+- `nombre` — nombre del producto/servicio
+- `descripcion` — detalle opcional
+- `precio` — precio unitario (decimal)
+- `stock` — existencias disponibles (si aplica a productos físicos)
+- `created_at`, `updated_at`
+
+**3. facturas**
+Representa el documento de facturación emitido a un cliente. Es la entidad "cabecera" de la venta.
+- `id`
+- `numero` — número de factura (único, ej. correlativo tipo FAC-0001)
+- `cliente_id` — FK hacia `clientes`
+- `fecha` — fecha de emisión
+- `total` — monto total (calculado a partir del detalle)
+- `estado` — pendiente / pagada / anulada
+- `created_at`, `updated_at`
+
+**4. detalle_facturas**
+Tabla intermedia que resuelve la relación N:N entre `facturas` y `productos`, guardando además datos propios de cada línea (cantidad, precio al momento de la venta).
+- `id`
+- `factura_id` — FK hacia `facturas`
+- `producto_id` — FK hacia `productos`
+- `cantidad`
+- `precio_unitario` — precio al momento de facturar (no se toma el precio actual del producto, para preservar el histórico)
+- `subtotal` — cantidad × precio_unitario
+- `created_at`, `updated_at`
+
+## Relaciones
+
+- Un **cliente** puede tener muchas **facturas** (1:N)
+- Una **factura** pertenece a un solo **cliente** (N:1)
+- Una **factura** puede tener muchos **detalles** (1:N)
+- Un **producto** puede aparecer en muchos **detalles de factura** (1:N)
+- **facturas** y **productos** tienen una relación N:N, resuelta mediante `detalle_facturas`
+

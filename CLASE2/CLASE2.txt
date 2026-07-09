@@ -1,0 +1,157 @@
+Verificar versión de proyecto, desde del directorio donde este
+se encuentra instalado:
+php artisan --version
+
+https://laravel.com/docs/13.x/database
+
+
+Artisan es la interfaz de línea de comandos incluida en Laravel. Artisan se encuentra en la raíz de tu aplicación como un artisanscript y proporciona una serie de comandos útiles que te ayudarán durante el desarrollo de tu aplicación. Para ver una lista de todos los comandos de Artisan disponibles, puedes usar el list 
+comando:
+
+php artisan list
+
+
+### 1. Configuración de bases de datos y entorno
+
+Antes de crear nada, Laravel necesita saber dónde guardar los datos.
+
+* **Archivo `.env`:** Es el corazón de tu configuración. Ábrelo en la raíz del proyecto y localiza las variables `DB_`. Asegúrate de que coincidan con tu servidor local (ej. XAMPP/MariaDB):
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=nombre_de_tu_bd
+DB_USERNAME=root
+DB_PASSWORD=
+
+```
+
+* **Creación de la BD:** Laravel **no crea la base de datos por ti**; solo crea las tablas dentro de ella. Debes ir a tu gestor (phpMyAdmin o MySQL Workbench) y crear una base de datos con el nombre exacto que pusiste en `DB_DATABASE`.
+* **Verificación:** Ejecuta en tu terminal `php artisan migrate`. Si no hay errores, significa que el sistema ya puede comunicarse con tu servidor.
+
+### 2. Creación de tablas con el sistema de migraciones
+
+Las migraciones son "control de versiones" para tu esquema de base de datos.
+
+* **Generar la migración:** Usa el comando Artisan para crear el archivo:
+```bash
+php artisan make:migration create_products_table
+
+```
+
+
+Esto creará un archivo en `database/migrations/`.
+* **Definir la estructura:** Dentro del método `up()` de ese archivo, defines tus columnas:
+```php
+public function up(): void
+{
+    Schema::create('products', function (Blueprint $table) {
+        $table->id(); // ID autoincremental
+        $table->string('name'); // Columna de texto
+        $table->decimal('price', 8, 2); // Columna decimal
+        $table->timestamps(); // Crea columnas created_at y updated_at
+    });
+}
+
+```
+
+
+* **Ejecutar los cambios:** Una vez definido el esquema, ejecuta el comando para aplicar los cambios a la base de datos real:
+```bash
+php artisan migrate
+
+```
+
+
+
+### Buenas prácticas para tu proyecto:
+
+1. **Nunca edites tablas manualmente:** Si necesitas añadir una columna nueva, **no** vayas a phpMyAdmin. Crea una nueva migración con `php artisan make:migration add_description_to_products_table` y ejecuta el comando de migración de nuevo. Esto permite que cualquier otra persona (o tú mismo en otro equipo) pueda replicar la estructura solo ejecutando `migrate`.
+2. **El método `down()`:** Siempre asegúrate de que el método `down()` sea el inverso al `up()`. Por ejemplo, si en `up` haces `Schema::create`, en `down` deberías hacer `Schema::dropIfExists`. Esto te permite "deshacer" una migración si cometiste un error, mediante el comando `php artisan migrate:rollback`.
+
+********************
+**** POSTGRESQL ****
+********************
+
+Trabajar con **PostgreSQL** es una excelente elección para un proyecto profesional debido a su robustez y cumplimiento de estándares. En Laravel, el proceso es prácticamente idéntico al de MySQL, pero con algunas particularidades en la configuración.
+
+### 1. Configuración del entorno (`.env`)
+
+PostgreSQL utiliza un puerto diferente por defecto (5432). Asegúrate de que tu archivo `.env` en la raíz del proyecto esté configurado así:
+
+```env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=nombre_de_tu_bd
+DB_USERNAME=tu_usuario
+DB_PASSWORD=tu_contraseña
+
+```
+
+**Nota importante:** Antes de ejecutar las migraciones, debes asegurarte de que la extensión `pdo_pgsql` esté habilitada en tu archivo `php.ini` (si estás en Windows, quita el punto y coma `;` delante de `extension=pdo_pgsql` y reinicia tu servidor local).
+
+---
+
+### 2. Creación de tablas mediante Migraciones
+
+El sistema de migraciones es agnóstico a la base de datos. Esto significa que el mismo código PHP funcionará tanto en MySQL como en PostgreSQL.
+
+#### Paso A: Generar la migración
+
+Ejecuta el siguiente comando para crear una tabla, por ejemplo, para gestionar `categories`:
+
+```bash
+php artisan make:migration create_categories_table
+
+```
+
+#### Paso B: Definir el esquema
+
+En el archivo generado en `database/migrations/`, utiliza el constructor de esquemas de Laravel. PostgreSQL es muy estricto con los tipos de datos, lo cual ayuda a la integridad:
+
+```php
+public function up(): void
+{
+    Schema::create('categories', function (Blueprint $table) {
+        $table->id(); // BigIncrements en Postgres
+        $table->string('name', 100);
+        $table->text('description')->nullable();
+        $table->boolean('is_active')->default(true);
+        $table->timestamps();
+    });
+}
+
+```
+
+#### Paso C: Ejecutar la migración
+
+Una vez definido, aplica los cambios al servidor de PostgreSQL:
+
+```bash
+php artisan migrate
+
+```
+
+---
+
+### Diferencias clave al usar PostgreSQL
+
+Al trabajar con este motor, hay ciertos matices que debes conocer:
+
+1. **Esquemas (`Schemas`)**: PostgreSQL utiliza un sistema de esquemas. Por defecto, Laravel trabaja en el esquema `public`. Si necesitas usar otro, puedes definirlo en la configuración de `config/database.php`.
+2. **Sensibilidad a mayúsculas**: A diferencia de algunas configuraciones de MySQL, los nombres de tablas y columnas en PostgreSQL son sensibles a mayúsculas si los encierras entre comillas dobles. Laravel maneja esto automáticamente, pero siempre mantén tus nombres de tablas en **minúsculas y snake_case** (ej. `user_profiles`, no `UserProfiles`).
+3. **Tipos de datos avanzados**: PostgreSQL permite tipos de datos potentes como `jsonb`. Puedes aprovecharlos en tus migraciones así:
+```php
+$table->jsonb('metadata')->nullable();
+
+```
+
+
+
+### Resumen del flujo de desarrollo
+
+* **No toques la consola de PostgreSQL directamente** para crear tablas; usa siempre `php artisan make:migration`.
+* **Usa `php artisan migrate:status**` para verificar qué migraciones han sido aplicadas correctamente a tu base de datos PostgreSQL.
+* **Para cambios**: Si olvidaste una columna, crea una nueva migración con `php artisan make:migration add_column_to_categories_table`.
+

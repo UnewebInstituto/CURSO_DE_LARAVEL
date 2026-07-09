@@ -1,0 +1,339 @@
+## 3. Eloquent (el ORM)
+
+**Qué es:** el **Object-Relational Mapper** de Laravel. Permite trabajar con las tablas de la base de datos como si fueran objetos PHP, evitando escribir SQL manualmente en la mayoría de los casos. Cada modelo Eloquent representa una tabla, y cada instancia del modelo representa una fila.
+
+**Convenciones que Eloquent asume por defecto** (importante explicarlas, porque si no se siguen hay que configurarlas manualmente):
+- El modelo `Cliente` corresponde a la tabla `clientes` (plural, snake_case)
+- La PK se llama `id`
+- Tiene columnas `created_at` y `updated_at` automáticas (timestamps)
+
+*****
+En el entorno específico, Tinker **no resuelve automáticamente** los nombres cortos de clase (`Cliente` en vez de `\App\Models\Cliente`), así que hay que usar el namespace completo o importar la clase dentro de la sesión.
+
+## Entrar a Tinker
+
+```bash
+php artisan tinker
+```
+
+## Opción A: usando el namespace completo en cada consulta
+
+```php
+\App\Models\Cliente::all();
+
+\App\Models\Cliente::where('telefono', 'like', '300%')->get();
+
+\App\Models\Cliente::find(1);
+```
+
+## Opción B: importar la clase una sola vez con `use` dentro de Tinker (recomendado si vas a escribir varias consultas seguidas)
+
+```php
+use App\Models\Cliente;
+```
+
+Y a partir de ahí, dentro de esa misma sesión, puedes escribir el nombre corto:
+
+```php
+Cliente::all();
+Cliente::where('telefono', 'like', '300%')->get();
+Cliente::withCount('facturas')->get();
+```
+
+**Nota:** este `use` solo dura mientras la sesión de Tinker esté abierta — si sales (`exit`) y vuelves a entrar, hay que volver a escribirlo.
+
+## Ejecutar una consulta directa desde la terminal sin entrar al modo interactivo
+
+Igual que vimos con las factories, también puedes usar `--execute` para correr una sola consulta y ver el resultado sin quedarte dentro del shell:
+
+```bash
+php artisan tinker --execute="dd(\App\Models\Cliente::count());"
+```
+
+## Salir de Tinker
+
+```php
+exit
+```
+o `Ctrl + C`
+
+## Recomendación para la demo en clase
+
+Empieza la sesión de Tinker escribiendo los `use` de los modelos que vas a necesitar, así el resto de la demo se ve más limpio en pantalla:
+
+```php
+use App\Models\Cliente;
+use App\Models\Factura;
+use App\Models\Producto;
+use App\Models\DetalleFactura;
+```
+
+
+
+
+*****
+
+**Modelo básico:**
+```bash
+php artisan make:model Cliente
+```
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Cliente extends Model
+{
+    protected $fillable = ['nombre', 'nit', 'email', 'telefono', 'direccion'];
+
+    public function facturas(): HasMany
+    {
+        return $this->hasMany(Factura::class);
+    }
+}
+```
+
+**Relaciones del proyecto de facturación:**
+
+```php
+// app/Models/Factura.php
+class Factura extends Model
+{
+    protected $fillable = ['numero', 'cliente_id', 'fecha', 'total', 'estado'];
+
+    public function cliente(): BelongsTo
+    {
+        return $this->belongsTo(Cliente::class);
+    }
+
+    public function detalles(): HasMany
+    {
+        return $this->hasMany(DetalleFactura::class);
+    }
+}
+
+// app/Models/DetalleFactura.php
+class DetalleFactura extends Model
+{
+    protected $fillable = ['factura_id', 'producto_id', 'cantidad', 'precio_unitario', 'subtotal'];
+
+    public function factura(): BelongsTo
+    {
+        return $this->belongsTo(Factura::class);
+    }
+
+    public function producto(): BelongsTo
+    {
+        return $this->belongsTo(Producto::class);
+    }
+}
+```
+
+**Consultas típicas que vale la pena mostrar en clase:**
+
+```php
+// Traer todas las facturas de un cliente
+$cliente = Cliente::find(1);
+$facturas = $cliente->facturas; // colección de Factura
+
+// Traer una factura con su cliente y detalles (evitando el problema N+1)
+$factura = Factura::with('cliente', 'detalles.producto')->find(5);
+
+// Calcular el total de una factura sumando sus detalles
+$total = $factura->detalles->sum('subtotal');
+
+// Filtrar facturas pendientes
+$pendientes = Factura::where('estado', 'pendiente')->get();
+
+// Query builder + Eloquent combinados para reportes
+$topClientes = Cliente::withCount('facturas')
+    ->orderByDesc('facturas_count')
+    ->take(5)
+    ->get();
+```
+
+#
+Aquí tienes una guía práctica de consultas Eloquent usando `Cliente` como entidad base, organizada de lo más simple a lo más elaborado — ideal como guion para la clase 12.
+
+## 1. Traer todos los registros
+
+```php
+$clientes = Cliente::all();
+```
+
+Devuelve una `Collection` con todos los clientes. Útil solo para tablas pequeñas — para producción normalmente se usa `paginate()` (lo vemos más abajo), porque `all()` carga **todo** en memoria de una vez.
+
+## 2. Buscar por clave primaria
+
+```php
+$cliente = Cliente::find(1);
+```
+
+Devuelve el modelo o `null` si no existe. Si quieres que lance una excepción 404 automática (útil dentro de un controlador):
+
+```php
+$cliente = Cliente::findOrFail(1);
+```
+
+## 3. Filtrar con `where()`
+
+```php
+// Un solo cliente por NIT
+$cliente = Cliente::where('nit', '900123456-7')->first();
+
+// Varios clientes que cumplan una condición
+$clientes = Cliente::where('telefono', 'like', '300%')->get();
+```
+
+**Detalle importante para explicar en clase:** `where()` siempre devuelve un **query builder**, no resultados — hay que cerrar la consulta con `->get()` (varios) o `->first()` (uno solo). Es un error común de principiante intentar iterar directamente sobre el resultado de `where()` sin el `get()`.
+
+## 4. Múltiples condiciones
+
+```php
+$clientes = Cliente::where('telefono', 'like', '300%')
+    ->where('email', 'like', '%@gmail.com')
+    ->get();
+```
+
+Encadenar `where()` los combina con `AND`. Para `OR`:
+
+```php
+$clientes = Cliente::where('nombre', 'like', '%Progreso%')
+    ->orWhere('nombre', 'like', '%Andina%')
+    ->get();
+```
+
+## 5. Ordenar resultados
+
+```php
+$clientes = Cliente::orderBy('nombre', 'asc')->get();
+
+// Más recientes primero
+$clientes = Cliente::orderBy('created_at', 'desc')->get();
+```
+
+## 6. Limitar cantidad de resultados
+
+```php
+$clientes = Cliente::orderBy('created_at', 'desc')->limit(5)->get();
+```
+
+## 7. Contar y agregaciones
+
+```php
+$total = Cliente::count();
+
+$conEmail = Cliente::whereNotNull('email')->count();
+```
+
+## 8. Consultas con relaciones (aquí es donde Eloquent brilla)
+
+Recordando el modelo `Cliente`:
+
+```php
+class Cliente extends Model
+{
+    use HasFactory;
+
+    protected $fillable = ['nombre', 'nit', 'email', 'telefono', 'direccion'];
+
+    public function facturas(): HasMany
+    {
+        return $this->hasMany(Factura::class);
+    }
+}
+```
+
+**Acceder a las facturas de un cliente específico:**
+```php
+$cliente = Cliente::find(1);
+$facturas = $cliente->facturas; // Collection de Factura
+```
+
+**Filtrar clientes que tienen al menos una factura:**
+```php
+$clientes = Cliente::has('facturas')->get();
+```
+
+**Filtrar clientes con facturas pendientes específicamente (relación + condición sobre la relación):**
+```php
+$clientes = Cliente::whereHas('facturas', function ($query) {
+    $query->where('estado', 'pendiente');
+})->get();
+```
+
+**Contar facturas por cliente sin cargar todas las filas (más eficiente):**
+```php
+$clientes = Cliente::withCount('facturas')->get();
+
+foreach ($clientes as $cliente) {
+    echo $cliente->nombre . ': ' . $cliente->facturas_count . ' facturas';
+}
+```
+
+**Cargar cliente + facturas juntos, evitando el problema N+1** (fundamental explicarlo bien en clase):
+
+```php
+// MAL: dispara 1 consulta por cada cliente para traer sus facturas (N+1)
+$clientes = Cliente::all();
+foreach ($clientes as $cliente) {
+    echo $cliente->facturas->count();
+}
+
+// BIEN: una sola consulta adicional (eager loading)
+$clientes = Cliente::with('facturas')->get();
+foreach ($clientes as $cliente) {
+    echo $cliente->facturas->count();
+}
+```
+
+Este contraste es uno de los ejemplos más valiosos que puedes mostrar en clase — activa `DB::enableQueryLog()` y muestra cuántas queries reales se ejecutan en cada caso.
+
+## 9. Paginación (conecta directo con el tema 11)
+
+```php
+$clientes = Cliente::orderBy('nombre')->paginate(15);
+```
+
+En la vista Blade:
+```blade
+@foreach ($clientes as $cliente)
+    <p>{{ $cliente->nombre }}</p>
+@endforeach
+
+{{ $clientes->links() }}
+```
+
+`paginate()` genera automáticamente los enlaces de navegación (anterior/siguiente) y solo trae 15 registros por consulta — mucho más eficiente que `all()` cuando ya tienes cientos de clientes generados con la factory.
+
+## 10. Top N con relación (ejemplo combinando todo, bueno para cerrar la clase)
+
+```php
+$topClientes = Cliente::withCount('facturas')
+    ->orderByDesc('facturas_count')
+    ->take(5)
+    ->get();
+```
+
+"Los 5 clientes con más facturas" — un ejemplo que se siente como un reporte de negocio real, no un ejercicio abstracto.
+
+## Tabla resumen de métodos para dejar como referencia rápida en clase
+
+| Método | Qué hace |
+|---|---|
+| `all()` | Trae todos los registros |
+| `find($id)` | Busca por PK, devuelve `null` si no existe |
+| `findOrFail($id)` | Igual, pero lanza excepción 404 |
+| `where(...)` | Filtra (requiere `get()` o `first()` al final) |
+| `first()` | Trae el primer resultado que cumpla la condición |
+| `orderBy(...)` | Ordena resultados |
+| `paginate($n)` | Pagina resultados ($n por página) |
+| `with('relacion')` | Eager loading — evita N+1 |
+| `has('relacion')` | Filtra registros que tienen al menos una relación asociada |
+| `whereHas('relacion', fn)` | Filtra según condición sobre la relación |
+| `withCount('relacion')` | Cuenta relaciones sin cargarlas completas |
+

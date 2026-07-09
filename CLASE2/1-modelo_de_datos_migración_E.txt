@@ -1,0 +1,174 @@
+Aquí tienes las 4 migraciones en el orden correcto (respetando las dependencias de FK: primero las tablas sin dependencias, luego las que referencian a otras).
+
+## Orden de creación
+
+Las migraciones en Laravel se ejecutan en orden cronológico según su timestamp en el nombre del archivo, así que generarlas en este orden garantiza que las FK encuentren la tabla referenciada ya creada:
+
+1. `clientes` (sin dependencias)
+2. `productos` (sin dependencias)
+3. `facturas` (depende de `clientes`)
+4. `detalle_facturas` (depende de `facturas` y `productos`)
+
+## Comandos para generar los archivos
+
+```bash
+php artisan make:migration create_clientes_table
+php artisan make:migration create_productos_table
+php artisan make:migration create_facturas_table --create=facturas
+php artisan make:migration create_detalle_facturas_table --create=detalle_facturas
+```
+
+## 1. `xxxx_create_clientes_table.php`
+
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('clientes', function (Blueprint $table) {
+            $table->id();
+            $table->string('nombre');
+            $table->string('nit')->unique();
+            $table->string('email')->nullable();
+            $table->string('telefono', 20)->nullable();
+            $table->string('direccion')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('clientes');
+    }
+};
+```
+
+## 2. `xxxx_create_productos_table.php`
+
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('productos', function (Blueprint $table) {
+            $table->id();
+            $table->string('nombre');
+            $table->text('descripcion')->nullable();
+            $table->decimal('precio', 10, 2);
+            $table->integer('stock')->default(0);
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('productos');
+    }
+};
+```
+
+## 3. `xxxx_create_facturas_table.php`
+
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('facturas', function (Blueprint $table) {
+            $table->id();
+            $table->string('numero')->unique();
+            $table->foreignId('cliente_id')
+                  ->constrained('clientes')
+                  ->onDelete('restrict');
+            $table->date('fecha');
+            $table->decimal('total', 10, 2)->default(0);
+            $table->enum('estado', ['pendiente', 'pagada', 'anulada'])
+                  ->default('pendiente');
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('facturas');
+    }
+};
+```
+
+## 4. `xxxx_create_detalle_facturas_table.php`
+
+```php
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('detalle_facturas', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('factura_id')
+                  ->constrained('facturas')
+                  ->onDelete('cascade');
+            $table->foreignId('producto_id')
+                  ->constrained('productos')
+                  ->onDelete('restrict');
+            $table->integer('cantidad');
+            $table->decimal('precio_unitario', 10, 2);
+            $table->decimal('subtotal', 10, 2);
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('detalle_facturas');
+    }
+};
+```
+
+## Puntos clave para explicar en clase
+
+**`onDelete('restrict')` vs `onDelete('cascade')`**
+- En `facturas`, si intentan borrar un cliente que ya tiene facturas, Postgres lo rechaza (`restrict`) — esto evita perder el historial contable de un cliente por accidente.
+- En `detalle_facturas`, si se borra una factura, sus líneas de detalle se borran automáticamente (`cascade`) — porque un detalle no tiene sentido sin su factura padre.
+- En `producto_id` dentro de detalle_facturas, se usa `restrict` porque no queremos que borrar un producto destruya el historial de ventas pasadas donde se usó.
+
+**`enum()` en PostgreSQL**
+Como mencionamos antes, Laravel traduce `$table->enum(...)` a un `CHECK` constraint en Postgres (no a un tipo `ENUM` nativo como en MySQL). Funcionalmente es idéntico desde Eloquent, pero si un estudiante inspecciona la tabla con `\d facturas` en `psql`, verá una restricción `CHECK` en vez de un tipo enumerado — vale la pena mostrarlo en vivo para que no se confundan.
+
+**Ejecutar las migraciones**
+
+```bash
+php artisan migrate
+```
+
+Y para verificar en PostgreSQL:
+
+```bash
+psql -U postgres -d facturacion_db
+\dt
+\d facturas
+```
+

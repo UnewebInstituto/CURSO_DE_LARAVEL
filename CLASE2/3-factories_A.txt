@@ -1,0 +1,132 @@
+## 2. Model Factories
+
+**Qué son:** "plantillas" que definen cómo generar datos **falsos pero realistas** para un modelo, usando la librería `Faker` por debajo. A diferencia de los seeders (que suelen tener datos fijos y controlados), las factories están pensadas para generar **volumen** de datos aleatorios — ideal para probar paginación, rendimiento, o simplemente tener una BD que "se vea real" en clase.
+
+**Comando para crear una:**
+```bash
+php artisan make:factory ProductoFactory --model=Producto
+```
+
+**Ejemplo (`database/factories/ProductoFactory.php`):**
+```php
+<?php
+
+namespace Database\Factories;
+
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+class ProductoFactory extends Factory
+{
+    public function definition(): array
+    {
+        return [
+            'nombre' => fake()->words(3, true),
+            'descripcion' => fake()->sentence(10),
+            'precio' => fake()->randomFloat(2, 5, 500),
+            'stock' => fake()->numberBetween(0, 200),
+        ];
+    }
+}
+```
+**** Previamente ****
+
+php artisan tinker
+
+**Uso típico (en un seeder o en Tinker):**
+```php
+// Crear 50 productos falsos
+Producto::factory()->count(50)->create();
+
+Prueba a realizar:
+\App\Models\Producto::factory()->count(10)->create();
+
+// Crear 1 producto falso
+Producto::factory()->create();
+```
+
+**Estado personalizado (opcional, para reforzar el concepto de `state()`):**
+```php
+// database/factories/ProductoFactory.php
+
+public function agotado(): static
+{
+    return $this->state(fn (array $attributes) => [
+        'stock' => 0,
+    ]);
+}
+```
+```php
+// Uso:
+Producto::factory()->agotado()->count(5)->create();
+```
+
+**Factories con relaciones (clave para el proyecto de facturación):**
+
+Aquí `Producto` se usa como pieza dentro de una factura, mostrando cómo una factory puede "encadenar" relaciones con otros modelos:
+
+```php
+// Crear una factura con 3 líneas de detalle, cada una con su propio producto generado
+Factura::factory()
+    ->for(Cliente::factory())
+    ->has(
+        DetalleFactura::factory()
+            ->count(3)
+            ->for(Producto::factory()),
+        'detalles'
+    )
+    ->create();
+```
+
+Esto es especialmente potente para demostrar en clase: con este bloque generas una factura completa con cliente, productos y sus líneas de detalle relacionadas, sin llenar un solo formulario ni haber creado productos de antemano.
+
+**Detalle importante para el curso:** en `DetalleFactura`, el `precio_unitario` debería tomar el precio del producto generado en ese momento (no un número aleatorio independiente), para que la demo sea coherente:
+
+```php
+// database/factories/DetalleFacturaFactory.php
+
+public function definition(): array
+{
+    $producto = Producto::factory()->create();
+    $cantidad = fake()->numberBetween(1, 5);
+
+    return [
+        'producto_id' => $producto->id,
+        'cantidad' => $cantidad,
+        'precio_unitario' => $producto->precio,
+        'subtotal' => $producto->precio * $cantidad,
+    ];
+}
+```
+
+Este es un buen momento para explicar que las factories no solo generan datos "al azar" sino que pueden encapsular **lógica de negocio básica** (el subtotal siempre coherente con precio × cantidad).
+
+**Diferencia clave seeder vs factory:**
+
+| | Seeder | Factory |
+|---|---|---|
+| Propósito | Datos específicos y controlados | Datos aleatorios en volumen |
+| Ejemplo típico | Productos de catálogo fijo (ej. "Servicio de instalación") | 200 productos de prueba |
+| Se usan juntos | Un seeder normalmente **invoca** una factory para generar el volumen | — |
+
+**Patrón recomendado (seeder que usa factory):**
+```php
+class DatabaseSeeder extends Seeder
+{
+    public function run(): void
+    {
+        // Productos específicos y reconocibles para las demos en clase
+        Producto::create(['nombre' => 'Servicio de instalación', 'precio' => 150000, 'stock' => 999]);
+        Producto::create(['nombre' => 'Mantenimiento preventivo', 'precio' => 80000, 'stock' => 999]);
+
+        // + volumen aleatorio para probar paginación
+        Producto::factory()->count(50)->create();
+
+        Cliente::factory()->count(30)->create();
+
+        Factura::factory()
+            ->count(100)
+            ->has(DetalleFactura::factory()->count(rand(1, 5)), 'detalles')
+            ->create();
+    }
+}
+```

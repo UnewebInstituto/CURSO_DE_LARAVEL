@@ -1,0 +1,78 @@
+**XAMPP no incluye PostgreSQL**. Viene con Apache, MySQL/MariaDB, PHP y Perl — PostgreSQL hay que instalarlo aparte. Aquí las consideraciones clave:
+
+## 1. Qué SÍ usas de XAMPP y qué NO
+
+**Usas de XAMPP:**
+- Apache (si sirves la app con Apache en vez de `php artisan serve`)
+- PHP (el intérprete)
+
+**NO usas de XAMPP:**
+- El módulo MySQL/MariaDB — PostgreSQL corre como un servicio totalmente aparte, instalado independientemente (instalador oficial de postgresql.org, o vía Laragon/Docker)
+
+Esto es importante aclararlo: van a tener **dos paneles de control corriendo en paralelo** — el de XAMPP (para Apache/PHP) y el de PostgreSQL (su propio servicio de Windows o `pg_ctl`).
+
+## 2. Habilitar las extensiones PHP necesarias
+
+XAMPP trae las extensiones de PostgreSQL, pero vienen **deshabilitadas por defecto** en `php.ini`.
+
+Ubicar el archivo (normalmente en `C:\xampp\php\php.ini`) y descomentar estas dos líneas (quitar el `;` del inicio):
+
+```ini
+extension=pdo_pgsql
+extension=pgsql
+```
+
+Después de guardar, **reiniciar Apache** desde el panel de XAMPP para que tome el cambio.
+
+**Verificación rápida:**
+```bash
+php -m | findstr pgsql
+```
+(en Windows) o crear un `phpinfo()` y buscar la sección `pdo_pgsql`.
+
+Si Laravel no encuentra el driver, el error típico es:
+```
+could not find driver (Connection: pgsql)
+```
+que casi siempre significa que `pdo_pgsql` no está habilitada o Apache no se reinició después del cambio.
+
+## 3. Conflicto de puertos
+
+- PostgreSQL usa por defecto el puerto **5432**
+- MySQL/MariaDB de XAMPP usa **3306**
+
+No hay conflicto directo entre ellos, pero si se tiene otro PostgreSQL corriendo (por ejemplo, ya instalado antes por otro programa) o XAMPP con MySQL activo, conviene verificar con:
+
+```bash
+netstat -ano | findstr 5432
+```
+que el puerto esté libre antes de instalar, o hacer que el servicio de XAMPP (MySQL) simplemente no se inicie si no lo van a usar — así evitan consumir RAM innecesariamente.
+
+## 4. Cliente de administración
+
+XAMPP trae **phpMyAdmin** para MySQL, pero **no trae nada equivalente para PostgreSQL**. Hay que instalar por separado:
+- **pgAdmin 4** (viene incluido en el instalador oficial de PostgreSQL, es lo más recomendable)
+- O usar la terminal `psql` directamente
+- O una alternativa ligera como **DBeaver** o **TablePlus** si prefieren algo más liviano que pgAdmin (que puede ser pesado en equipos con 8 GB RAM)
+
+## 5. Variables de entorno (`.env` de Laravel)
+
+Confirmar que apunte al servicio de PostgreSQL, no al de XAMPP:
+
+```env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=facturacion_db
+DB_USERNAME=postgres
+DB_PASSWORD=la_contraseña_que_definieron_al_instalar
+```
+
+## 6. Crear la base de datos antes de migrar
+
+A diferencia de phpMyAdmin donde algunos crean la BD con un clic, aquí hay que crearla manualmente antes de `php artisan migrate`:
+
+```sql
+-- desde psql o pgAdmin
+CREATE DATABASE facturacion_db;
+```
