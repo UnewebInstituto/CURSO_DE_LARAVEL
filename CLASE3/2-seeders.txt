@@ -1,5 +1,7 @@
 ## 1. Seeders
 
+Requisito: DEBE EXITIR EL MODELO PARA QUE HAYA SEEDERS.
+
 **Qué son:** clases PHP que insertan datos iniciales o de prueba en la base de datos de forma programática y repetible. Resuelven el problema de "necesito datos para probar mi aplicación" sin tener que llenarlos a mano por la interfaz cada vez que reseteas la BD.
 
 **Cuándo se usan:**
@@ -110,7 +112,9 @@ public function run(): void
 }
 ```
 
-**Nota importante sobre `insert()` vs `create()` en bucle:** si usas `Cliente::insert($clientes)` (inserción masiva directa) en lugar del `foreach` con `create()`, es más rápido porque hace un solo `INSERT` SQL con múltiples filas, pero **no dispara los eventos de Eloquent** (`creating`, `created`, observers, etc.) ni respeta casts/mutators del modelo. Para un seeder simple no suele importar, pero vale la pena mencionarlo en clase como diferencia conceptual entre "hablarle a Eloquent" y "hablarle directo a la BD".
+**Nota importante sobre `insert()` vs `create()` en bucle:** si usas `Cliente::insert($clientes)` (inserción masiva directa) en lugar del `foreach` con `create()`, es más rápido porque hace un solo `INSERT` SQL con múltiples filas, pero **no dispara los eventos de Eloquent** (`creating`, `created`, observers, etc.) ni respeta casts/mutators del modelo. 
+
+Para un seeder simple no suele importar, pero es una diferencia conceptual entre "hablarle a Eloquent" y "hablarle directo a la BD".
 
 ## Opción 3: Combinando con Factory (para volumen)
 

@@ -1,0 +1,167 @@
+*******************************
+**** DEFINICIÓN DE MODELOS ****
+*******************************
+
+Aquí está el punto clave que hay que aclarar: **las migraciones y los modelos son cosas completamente independientes en Laravel**. 
+
+Ejecutar `php artisan migrate` crea las tablas en la base de datos, pero **no genera automáticamente los modelos Eloquent**. 
+
+Por eso solo ves `User.php` — es el único modelo que Laravel trae por defecto en una instalación nueva (junto con su migración correspondiente).
+
+*********************
+**** IMPORTANTE: ****
+*********************
+
+Tienes que crear cada modelo explícitamente.
+
+## Comando básico
+
+```bash
+php artisan make:model Cliente
+php artisan make:model Producto
+php artisan make:model Factura
+php artisan make:model DetalleFactura
+```
+
+Esto genera únicamente `app/Models/Cliente.php` (y así con cada uno) con la estructura mínima:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Cliente extends Model
+{
+    //
+}
+```
+
+Sobre esa base es donde luego agregan `$fillable` y las relaciones (`hasMany`, `belongsTo`) que vimos antes.
+
+## Mejor enfoque: generar todo junto con flags (recomendado para tu caso)
+
+Como ya tienes las migraciones creadas, no necesitas esto para las tablas — pero es importante que lo conozcan para **futuros proyectos**, porque `make:model` acepta flags que generan varios archivos relacionados de una sola vez:
+
+```bash
+php artisan make:model Cliente -mfc
+```
+
+Donde:
+- `-m` → crea también la migración (`--migration`)
+- `-f` → crea también la factory (`--factory`)
+- `-c` → crea también el controlador (`--controller`)
+
+Otras combinaciones útiles:
+```bash
+php artisan make:model Cliente -a
+```
+El flag `-a` (`--all`) genera **todo de una vez**: migración, factory, seeder, controlador (tipo resource) y form requests. Es el atajo más completo, aunque para el curso vamos a ir paso a paso.
+
+## Para esta situación actual específica
+
+Como las migraciones **ya existen**, se usa el comando simple sin `-m` (para no generar una migración duplicada):
+
+```bash
+php artisan make:model Cliente
+php artisan make:model Producto
+php artisan make:model Factura
+php artisan make:model DetalleFactura
+```
+
+Y si en la siguiente clase vas a necesitar también las factories:
+
+```bash
+php artisan make:model Cliente -f
+```
+(esto solo agrega la factory, no vuelve a crear la migración porque no incluiste `-m`)
+
+## Verificación después de crear los modelos
+
+```bash
+php artisan model:show Cliente
+```
+
+Este comando (disponible desde Laravel 9+) es muy útil para clase porque **muestra las columnas reales de la tabla, tal como las ve Eloquent**, confirmando que el modelo está correctamente conectado a la tabla `clientes` — buena forma de verificar que todo está enlazado antes de seguir con las relaciones.
+
+## Punto pedagógico para remarcar
+
+NOTA: Laravel **no asume** que quieres un modelo por cada migración porque no siempre es así — a veces una migración solo agrega una columna a una tabla existente (`add_stock_to_productos_table`, por ejemplo), y ahí no tendría sentido generar un modelo nuevo. 
+Por eso la separación es intencional: 
+
+migraciones = estructura de datos, 
+
+modelos = capa de objetos para trabajar con esos datos desde PHP.
+
+
+*********************
+***** ATENCIÓN ******
+*********************
+
+## La dependencia es: Modelo → Factory → Seeder
+
+**1. El Modelo tiene que existir primero**, y además necesita el trait `HasFactory`:
+
+```php
+class Cliente extends Model
+{
+    use HasFactory; // ← sin esto, no hay factory() disponible
+}
+```
+
+**2. La Factory depende directamente del Modelo** — no puede existir de forma independiente. Cuando generas una factory:
+
+```bash
+php artisan make:factory ClienteFactory --model=Cliente
+```
+
+Laravel la vincula al modelo dentro del propio archivo generado:
+
+```php
+class ClienteFactory extends Factory
+{
+    // Laravel infiere el modelo automáticamente por el nombre "ClienteFactory" → Cliente
+    // pero también puede declararse explícito:
+    protected $model = Cliente::class;
+
+    public function definition(): array
+    {
+        return [
+            'nombre' => fake()->company(),
+            // ...
+        ];
+    }
+}
+```
+
+Si el modelo `Cliente` no existe (o no tiene `HasFactory`), la factory no tiene nada a qué "darle forma" — literalmente no hay `Cliente::create()` posible.
+
+**3. El Seeder depende de la Factory (o del Modelo directamente)** — un seeder normalmente invoca uno de los dos:
+
+```php
+class ClienteSeeder extends Seeder
+{
+    public function run(): void
+    {
+        // Puede usar el modelo directo (sin factory)
+        Cliente::create(['nombre' => 'Comercial El Progreso', ...]);
+
+        // O apoyarse en la factory (para volumen)
+        Cliente::factory()->count(50)->create();
+    }
+}
+```
+
+Aquí vale una aclaración importante: **el seeder no siempre necesita una factory** — puede usar `Cliente::create()` directo con datos fijos, como en tu primer ejemplo de `ClienteSeeder`. Lo que **sí** es indispensable siempre es el **modelo**, porque tanto `create()` como `factory()` son métodos que vienen del modelo Eloquent.
+
+## Resumen de la cadena de dependencias
+
+| Pieza | ¿De qué depende? | ¿Es obligatoria? |
+|---|---|---|
+| **Modelo** (`Cliente.php`) | De la tabla en BD (migración ya ejecutada) | Sí, siempre, para cualquier interacción con Eloquent |
+| **Factory** (`ClienteFactory.php`) | Del Modelo + trait `HasFactory` | Solo si quieres generar datos aleatorios/volumen |
+| **Seeder** (`ClienteSeeder.php`) | Del Modelo (obligatorio) y opcionalmente de la Factory | Solo si quieres poblar datos de forma repetible/versionada |
+
+
+

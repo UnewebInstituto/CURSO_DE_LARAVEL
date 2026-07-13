@@ -1,6 +1,7 @@
 ## 2. Model Factories
 
-**Qué son:** "plantillas" que definen cómo generar datos **falsos pero realistas** para un modelo, usando la librería `Faker` por debajo. A diferencia de los seeders (que suelen tener datos fijos y controlados), las factories están pensadas para generar **volumen** de datos aleatorios — ideal para probar paginación, rendimiento, o simplemente tener una BD que "se vea real" en clase.
+**Qué son:** "plantillas" que definen cómo generar datos **falsos pero realistas** para un modelo, usando la librería `Faker` por debajo. 
+A diferencia de los seeders (que suelen tener datos fijos y controlados), las factories están pensadas para generar **volumen** de datos aleatorios — ideal para probar paginación, rendimiento, o simplemente tener una BD que "se vea real" en clase.
 
 **Comando para crear una:**
 ```bash
@@ -29,16 +30,41 @@ class ProductoFactory extends Factory
 }
 ```
 **** Previamente ****
+REALIZAR LA SIGUIENTE ACTUALIZACIÓN DEL MODELO Producto
 
+*******************************
+<?php
+
+namespace App\Models;
+
+use Database\Factories\ProductoFactory; # Añadir
+use Illuminate\Database\Eloquent\Factories\HasFactory; # Añadir
+use Illuminate\Database\Eloquent\Model;
+
+class Producto extends Model
+{
+    //
+    use HasFactory; #Añadir
+}
+
+************************************************
+UNA VEZ REALIZADOS LOS CAMBIOS ACCEDER A TINKER
+************************************************
 php artisan tinker
 
 **Uso típico (en un seeder o en Tinker):**
 ```php
-// Crear 50 productos falsos
-Producto::factory()->count(50)->create();
+// Crear 10 productos falsos
+Producto::factory()->count(10)->create();
 
 Prueba a realizar:
+**** INDICAR LA RUTA COMPLETA DEL MODELO *****
 \App\Models\Producto::factory()->count(10)->create();
+
+Otra manera de hacer esto:
+use App\Models\Producto;
+Producto::factory()->count(50)->create();
+
 
 // Crear 1 producto falso
 Producto::factory()->create();
@@ -77,7 +103,7 @@ Factura::factory()
     ->create();
 ```
 
-Esto es especialmente potente para demostrar en clase: con este bloque generas una factura completa con cliente, productos y sus líneas de detalle relacionadas, sin llenar un solo formulario ni haber creado productos de antemano.
+Esto es especialmente potente para demostrar: con este bloque generas una factura completa con cliente, productos y sus líneas de detalle relacionadas, sin llenar un solo formulario ni haber creado productos de antemano.
 
 **Detalle importante para el curso:** en `DetalleFactura`, el `precio_unitario` debería tomar el precio del producto generado en ese momento (no un número aleatorio independiente), para que la demo sea coherente:
 
@@ -98,7 +124,7 @@ public function definition(): array
 }
 ```
 
-Este es un buen momento para explicar que las factories no solo generan datos "al azar" sino que pueden encapsular **lógica de negocio básica** (el subtotal siempre coherente con precio × cantidad).
+Las factories no solo generan datos "al azar" sino que pueden encapsular **lógica de negocio básica** (el subtotal siempre coherente con precio × cantidad).
 
 **Diferencia clave seeder vs factory:**
 

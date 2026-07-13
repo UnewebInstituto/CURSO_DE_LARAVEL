@@ -1,4 +1,6 @@
-Hay que distinguir dos cosas: **Tinker** (that command in the example) es en sí un comando de `php artisan`, así que técnicamente ya lo estás usando. Pero si buscas ejecutar esa línea **directamente desde la terminal sin entrar al modo interactivo**, sí existe:
+Hay que distinguir dos cosas: **Tinker**  es en sí un comando de `php artisan`, así que técnicamente ya lo estás usando. 
+
+Pero si buscas ejecutar esa línea **directamente desde la terminal sin entrar al modo interactivo**, sí existe:
 
 ## Opción 1: `tinker --execute` (ejecución directa, sin entrar al shell interactivo)
 

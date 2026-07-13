@@ -1,0 +1,1 @@
+"C:/Program Files/PostgreSQL/17/bin/pg_dump" -U postgres -d facturacion_db -F p -f "./backup_db/facturacion_db_20260713.sql"

@@ -2,7 +2,7 @@
 
 **Qué es:** el **Object-Relational Mapper** de Laravel. Permite trabajar con las tablas de la base de datos como si fueran objetos PHP, evitando escribir SQL manualmente en la mayoría de los casos. Cada modelo Eloquent representa una tabla, y cada instancia del modelo representa una fila.
 
-**Convenciones que Eloquent asume por defecto** (importante explicarlas, porque si no se siguen hay que configurarlas manualmente):
+**Convenciones que Eloquent asume por defecto** (importante, porque si no se siguen hay que configurarlas manualmente):
 - El modelo `Cliente` corresponde a la tabla `clientes` (plural, snake_case)
 - La PK se llama `id`
 - Tiene columnas `created_at` y `updated_at` automáticas (timestamps)
@@ -57,7 +57,7 @@ exit
 ```
 o `Ctrl + C`
 
-## Recomendación para la demo en clase
+## Recomendación 
 
 Empieza la sesión de Tinker escribiendo los `use` de los modelos que vas a necesitar, así el resto de la demo se ve más limpio en pantalla:
 
@@ -67,9 +67,6 @@ use App\Models\Factura;
 use App\Models\Producto;
 use App\Models\DetalleFactura;
 ```
-
-
-
 
 *****
 
@@ -132,7 +129,8 @@ class DetalleFactura extends Model
     }
 }
 ```
-
+***** PENDIENTE A EFECTUAR CUANDO SE HAYAN CARGADO DATOS *****
+***** EN FACTURAS 
 **Consultas típicas que vale la pena mostrar en clase:**
 
 ```php
