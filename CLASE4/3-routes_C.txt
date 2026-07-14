@@ -1,0 +1,69 @@
+Empecemos por lo más simple posible: una ruta que responde directo, sin controlador ni base de datos todavía, para que los estudiantes vean el comportamiento base antes de meter capas de complejidad.
+
+## Paso 1: la ruta más básica posible
+
+En `routes/web.php`:
+
+```php
+Route::get('/clientes', function () {
+    return 'Aquí va la lista de clientes';
+});
+```
+
+**Qué demostrar en vivo:**
+1. Levantar el servidor: `php artisan serve`
+2. Abrir el navegador en `http://127.0.0.1:8000/clientes`
+3. Ver el texto plano en pantalla
+
+Esto ya deja clara la relación más fundamental: **URL → Ruta → Respuesta**, sin ninguna otra pieza de por medio.
+
+## Paso 2: mostrar que el verbo HTTP importa
+
+Con esa misma ruta, mostrar qué pasa si intentan acceder con otro verbo. Por ejemplo, si en la consola del navegador (F12) hacen:
+
+```js
+fetch('http://127.0.0.1:8000/clientes', { method: 'POST' })
+```
+
+Van a recibir un error `405 Method Not Allowed` — porque la ruta solo está registrada para `GET`. Es un buen momento para remarcar que **la URL sola no es suficiente**; el verbo HTTP es parte de la identidad de la ruta.
+
+## Paso 3: subir un nivel — traer datos reales de la base de datos
+
+Ahora conectamos con lo que ya construimos (modelo `Cliente`, datos ya sembrados con el seeder/factory):
+
+```php
+use App\Models\Cliente;
+
+Route::get('/clientes', function () {
+    $clientes = Cliente::all();
+    return $clientes;
+});
+```
+
+**Qué pasa aquí, y por qué es interesante mostrarlo:** al visitar `/clientes` en el navegador, Laravel automáticamente convierte la colección de Eloquent en **JSON** — sin que hayas escrito ningún `json_encode()` ni definido ninguna vista. Es un comportamiento útil de mostrar temprano porque desmitifica cómo luego se construyen APIs con Laravel (aunque en el curso van a usar vistas Blade, no está de más que sepan que esto existe).
+
+## Paso 4: URL con parámetro — mostrar un cliente específico
+
+```php
+Route::get('/clientes/{id}', function ($id) {
+    $cliente = Cliente::find($id);
+    return $cliente;
+});
+```
+
+Aquí es ideal probar en vivo varias URLs:
+- `http://127.0.0.1:8000/clientes/1` → devuelve el cliente con id 1
+- `http://127.0.0.1:8000/clientes/999` → devuelve `null` (porque `find()` no lanza error si no existe, solo devuelve `null`)
+- `http://127.0.0.1:8000/clientes/abc` → probablemente error, porque `id` en la BD es numérico
+
+Esto sirve de gancho perfecto para introducir, en la siguiente clase, **Route Model Binding** (`function (Cliente $cliente)` en vez de `function ($id)`), mostrando cómo Laravel puede resolver automáticamente ese `find()` y devolver un 404 real si no existe, en vez de un `null` silencioso.
+
+## Progresión sugerida para la demo
+
+| Paso | Qué muestra | Concepto que ilustra |
+|---|---|---|
+| 1 | Ruta con texto fijo | URL → Ruta → Respuesta |
+| 2 | Mismo endpoint con otro verbo | El verbo HTTP es parte de la ruta |
+| 3 | Ruta que consulta Eloquent | Conexión ruta ↔ persistencia |
+| 4 | Ruta con parámetro `{id}` | Parámetros dinámicos en la URL |
+

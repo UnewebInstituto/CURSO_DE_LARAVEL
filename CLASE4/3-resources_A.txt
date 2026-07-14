@@ -1,0 +1,103 @@
+*******************
+**** Resources ****
+*******************
+
+Vamos con el enfoque de **rutas de recursos** (`Route::resource`), que es la forma idiomática de Laravel y la más adecuada para un CRUD como el de facturación.
+
+## Por qué `Route::resource` en vez de rutas una por una
+
+Podrías escribir cada ruta manualmente:
+
+```php
+Route::get('/clientes', [ClienteController::class, 'index']);
+Route::get('/clientes/create', [ClienteController::class, 'create']);
+Route::post('/clientes', [ClienteController::class, 'store']);
+// ... y así 4 más
+```
+
+Pero Laravel ya sabe que un CRUD siempre necesita las mismas 7 rutas, con los mismos verbos HTTP y nombres — así que existe un atajo que las genera todas:
+
+```php
+Route::resource('clientes', ClienteController::class);
+```
+
+Esa sola línea genera:
+
+| Verbo | URI | Acción | Nombre de ruta | Propósito |
+|---|---|---|---|---|
+| GET | `/clientes` | `index` | `clientes.index` | Listar todos |
+| GET | `/clientes/create` | `create` | `clientes.create` | Formulario de creación |
+| POST | `/clientes` | `store` | `clientes.store` | Guardar nuevo registro |
+| GET | `/clientes/{cliente}` | `show` | `clientes.show` | Ver uno específico |
+| GET | `/clientes/{cliente}/edit` | `edit` | `clientes.edit` | Formulario de edición |
+| PUT/PATCH | `/clientes/{cliente}` | `update` | `clientes.update` | Actualizar registro |
+| DELETE | `/clientes/{cliente}` | `destroy` | `clientes.destroy` | Eliminar registro |
+
+## `routes/web.php` para las 4 entidades del proyecto
+
+```php
+<?php
+
+use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\ProductoController;
+use App\Http\Controllers\FacturaController;
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', function () {
+    return view('welcome');
+});
+
+Route::resource('clientes', ClienteController::class);
+Route::resource('productos', ProductoController::class);
+Route::resource('facturas', FacturaController::class);
+```
+
+**Nota importante:** `DetalleFactura` normalmente **no necesita rutas propias** — sus registros se crean/editan dentro del formulario de `Factura` (agregar/quitar líneas de producto al momento de facturar), no como un CRUD independiente. Esto es un buen punto para explicar en clase: no toda tabla de la base de datos necesita su propio conjunto de rutas resource.
+
+## El vínculo clave con persistencia: **Route Model Binding**
+
+Aquí es donde se conecta directamente con todo lo que ya armamos (modelos con Eloquent). Fíjate en la columna URI de la tabla: `/clientes/{cliente}`. Ese `{cliente}` no es solo un ID genérico — Laravel, automáticamente, **busca el modelo `Cliente` con ese ID y lo inyecta ya resuelto** en el método del controlador:
+
+```php
+// ClienteController.php
+public function show(Cliente $cliente)
+{
+    return view('clientes.show', compact('cliente'));
+}
+```
+
+Sin escribir una sola consulta (`Cliente::find($id)`), el `$cliente` que llega ya es el modelo completo, cargado desde la base de datos. Si el ID no existe, Laravel devuelve automáticamente un 404 — sin que tengas que validarlo a mano.
+
+**Cómo funciona la "magia":** Laravel toma el nombre del parámetro de ruta (`{cliente}`) y lo relaciona con el tipo del parámetro del método (`Cliente $cliente`) — deben coincidir en nombre (en minúsculas) para que el binding funcione automáticamente.
+
+## Verificar las rutas generadas
+
+Comando muy útil para mostrar en clase, confirma que las 7 rutas por entidad se generaron correctamente:
+
+```bash
+php artisan route:list
+```
+
+O filtrado para una sola entidad:
+```bash
+php artisan route:list --name=clientes
+```
+
+## Conectando con Bootstrap 5 (lo que acabamos de definir)
+
+Ya que vamos a usar Bootstrap, aquí un adelanto de cómo los nombres de ruta (`clientes.index`, `clientes.create`, etc.) se usan en los enlaces del layout — esto se conecta directo con la clase de plantillas (tema 5):
+
+```blade
+<a href="{{ route('clientes.index') }}" class="btn btn-primary">Ver clientes</a>
+<a href="{{ route('clientes.create') }}" class="btn btn-success">Nuevo cliente</a>
+```
+
+Usar `route('clientes.index')` en vez de escribir `/clientes` a mano es una práctica que vale la pena remarcar: si el día de mañana cambian el prefijo de la URL (de `/clientes` a `/customers`, por ejemplo), solo se cambia en `web.php`, y todos los enlaces del proyecto se actualizan automáticamente porque usan el nombre de la ruta, no la URL literal.
+
+## Progresión sugerida para esta clase
+
+1. Mostrar la tabla de las 7 rutas generadas por `Route::resource` (concepto)
+2. Ejecutar `php artisan route:list` en vivo para verlas reales
+3. Explicar Route Model Binding con un ejemplo simple (`show`)
+4. Cerrar mostrando cómo esos nombres de ruta se van a usar luego en los botones Bootstrap del layout
+

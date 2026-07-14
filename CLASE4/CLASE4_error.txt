@@ -1,0 +1,49 @@
+Este error indica que el servidor de desarrollo de Laravel (`php artisan serve`) no está encontrando archivos críticos en la carpeta `vendor`, muy probablemente debido a que tu antivirus eliminó o puso en cuarentena archivos durante la instalación inicial. Aunque hayas desactivado el antivirus ahora, el daño en la estructura de dependencias ya está hecho.
+
+### Causa
+
+El mensaje `Failed opening required .../resources/server.php` confirma que la carpeta de vendor está incompleta o corrupta. Cuando un antivirus bloquea una instalación de Composer, a menudo deja el directorio `vendor` en un estado inconsistente, impidiendo que Laravel cargue sus componentes base.
+
+### Acciones para corregir
+
+Para solucionar esto, debes purgar la instalación actual y reinstalar las dependencias limpiamente:
+
+1. **Elimina la carpeta dañada**:
+* En tu terminal, dentro de la carpeta `facturacion-app`, borra el directorio `vendor` y el archivo `composer.lock`.
+* Comando en Windows: `rmdir /s /q vendor` y `del composer.lock`.
+
+
+2. **Limpia la caché de Composer**:
+* Ejecuta el comando para asegurarte de que no queden rastros corruptos:
+
+
+```bash
+composer clear-cache
+
+```
+
+
+3. **Reinstala las dependencias**:
+* Ejecuta la instalación limpia. Asegúrate de tener el antivirus totalmente pausado durante este proceso para evitar bloqueos:
+
+
+```bash
+composer install
+
+```
+
+
+4. **Verificación**:
+* Una vez finalizado, intenta ejecutar nuevamente:
+
+
+```bash
+php artisan serve
+
+```
+
+
+
+**Nota:** Si después de reinstalar sigue ocurriendo el error, verifica en tu antivirus (dentro de "Historial de protección" o "Cuarentena") si existen archivos bloqueados pertenecientes a la carpeta de tu proyecto. De ser así, deberás restaurarlos y agregar explícitamente la carpeta `facturacion-app` completa a las **exclusiones** de tu antivirus para evitar que vuelva a ocurrir.
+
+¿Lograste completar el proceso de `composer install` sin interrupciones del antivirus?

@@ -335,3 +335,17 @@ $topClientes = Cliente::withCount('facturas')
 | `whereHas('relacion', fn)` | Filtra según condición sobre la relación |
 | `withCount('relacion')` | Cuenta relaciones sin cargarlas completas |
 
+****************************
+** NOTA DE EQUIVALENCIAS: **
+****************************
+ORM
+\App\Models\Cliente::all(); 
+
+QUERY SQL
+DB::select('select * from clientes');
+
+
+tinker (repl):
+Un REPL (Read-Eval-Print Loop) es una consola interactiva que lee tu código, lo ejecuta inmediatamente, imprime el resultado y espera tu próxima instrucción. Es ideal para pruebas rápidas, depuración o aprender un lenguaje. Puedes acceder a ellos directamente en terminales de lenguajes como Python o JavaScript, o usar plataformas en la nube.
+
+

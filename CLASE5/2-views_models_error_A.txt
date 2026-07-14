@@ -1,0 +1,73 @@
+## Descripción del problema
+
+```
+Illuminate\Database\Eloquent\MassAssignmentException
+Add [nombre] to fillable property to allow mass assignment on [App\Models\Cliente].
+```
+
+Este es el error clásico de **asignación masiva** (*mass assignment*) en Eloquent. Ocurre en la línea:
+
+```php
+Cliente::create($validated);
+```
+
+## Causa
+
+Por seguridad, Eloquent **no permite** que cualquier campo enviado por el usuario se guarde automáticamente en la base de datos a menos que el modelo declare explícitamente **cuáles campos sí están autorizados** para ese tipo de operación masiva (`create()`, `update()`, `fill()`).
+
+Patrón que aplica a `Cliente.php`:
+
+```php
+class Cliente extends Model
+{
+    use HasFactory;
+    // ← falta declarar $fillable
+}
+```
+
+Como no existe la propiedad `$fillable` (ni tampoco `$guarded`), Eloquent asume la postura más segura posible: **rechaza todos los campos** y lanza esta excepción apenas detecta el primer campo que intenta asignarse (`nombre` en este caso, aunque el problema es el mismo para todos los demás campos del formulario).
+
+## Por qué existe esta protección
+
+Es un concepto de seguridad importante, no solo un trámite técnico: sin esta protección, si un usuario malicioso agregara un campo extra al formulario (por ejemplo, un campo oculto `es_admin=1` o, en este contexto, algo como `saldo_pendiente=0`), ese valor se guardaría directamente en la base de datos sin que el desarrollador lo autorizara — es un vector de ataque real documentado, conocido justamente como *mass assignment vulnerability*.
+
+## Solución
+
+Agregar la propiedad `$fillable` en `app/Models/Cliente.php`, listando explícitamente los campos que sí se pueden asignar de forma masiva:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Cliente extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'nombre',
+        'nit',
+        'email',
+        'telefono',
+        'direccion',
+    ];
+}
+```
+
+## Verificación
+
+Vuelve a intentar guardar el cliente desde el formulario — el `Cliente::create($validated)` ahora debería completarse sin la excepción.
+
+## Punto pedagógico para la clase
+
+Este es un excelente error para mostrar en vivo (aunque no haya sido intencional), porque conecta tres conceptos que ya vimos en clases anteriores:
+
+1. **Validación:** `$request->validate([...])` garantiza que los datos tengan el **formato correcto** (email válido, string, etc.)
+2. **Fillable (Eloquent):** garantiza que solo los campos **autorizados por el desarrollador** puedan escribirse en la base de datos — es una capa de seguridad distinta y complementaria a la validación, no un reemplazo.
+3. Ambas capas son necesarias: la validación no sustituye a `$fillable`, y viceversa — puedes tener datos perfectamente válidos que igual sean rechazados si el modelo no los declaró como asignables.
+
+**Nota adicional:** `$fillable`, ningún flag lo agrega — siempre hay que declararlo a mano.
+

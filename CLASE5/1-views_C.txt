@@ -1,0 +1,303 @@
+Vamos a armar el set completo de vistas para `Cliente`, con Bootstrap 5 vía CDN. Primero el layout base (si no lo tienes aún), y luego las 4 vistas necesarias para los métodos que ya completamos en el controlador.
+
+## 1. Layout base (`resources/views/layouts/app.blade.php`)
+
+Si aún no lo tienes, este es el punto de partida — todas las vistas de aquí en adelante lo van a extender:
+
+```blade
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@yield('title', 'Sistema de Facturación')</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url('/') }}">Facturación</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('clientes.index') }}">Clientes</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('productos.index') }}">Productos</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('facturas.index') }}">Facturas</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        @endif
+
+        @yield('content')
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+```
+
+## 2. `resources/views/clientes/index.blade.php`
+
+```blade
+@extends('layouts.app')
+
+@section('title', 'Clientes')
+
+@section('content')
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">Clientes</h1>
+        <a href="{{ route('clientes.create') }}" class="btn btn-success">
+            + Nuevo cliente
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>NIT</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($clientes as $cliente)
+                        <tr>
+                            <td>{{ $cliente->nombre }}</td>
+                            <td>{{ $cliente->nit }}</td>
+                            <td>{{ $cliente->email ?? '—' }}</td>
+                            <td>{{ $cliente->telefono ?? '—' }}</td>
+                            <td class="text-end">
+                                <a href="{{ route('clientes.show', $cliente) }}" class="btn btn-sm btn-outline-secondary">
+                                    Ver
+                                </a>
+                                <a href="{{ route('clientes.edit', $cliente) }}" class="btn btn-sm btn-outline-primary">
+                                    Editar
+                                </a>
+                                <form action="{{ route('clientes.destroy', $cliente) }}" method="POST" class="d-inline"
+                                      onsubmit="return confirm('¿Eliminar este cliente?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        Eliminar
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                No hay clientes registrados todavía.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        {{ $clientes->links() }}
+    </div>
+@endsection
+```
+
+**Detalles a explicar en clase:**
+- `@csrf` — inserta el token CSRF obligatorio en cualquier formulario `POST`/`PUT`/`DELETE`. Sin esto, Laravel rechaza la petición con error 419.
+- `@method('DELETE')` — los formularios HTML solo soportan `GET` y `POST` nativamente; esta directiva simula el verbo `DELETE` que espera la ruta resource.
+- `$clientes->links()` — genera automáticamente la paginación con estilos que heredan el CSS de Bootstrap ya cargado en el layout.
+
+## 3. `resources/views/clientes/create.blade.php`
+
+```blade
+@extends('layouts.app')
+
+@section('title', 'Nuevo cliente')
+
+@section('content')
+    <h1 class="h3 mb-4">Nuevo cliente</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form action="{{ route('clientes.store') }}" method="POST">
+                @csrf
+                @include('clientes._form')
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                    <a href="{{ route('clientes.index') }}" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+@endsection
+```
+
+## 4. `resources/views/clientes/edit.blade.php`
+
+```blade
+@extends('layouts.app')
+
+@section('title', 'Editar cliente')
+
+@section('content')
+    <h1 class="h3 mb-4">Editar cliente</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form action="{{ route('clientes.update', $cliente) }}" method="POST">
+                @csrf
+                @method('PUT')
+                @include('clientes._form')
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Actualizar</button>
+                    <a href="{{ route('clientes.index') }}" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+@endsection
+```
+
+## 5. Formulario parcial reutilizable — `resources/views/clientes/_form.blade.php`
+
+Esta es la pieza clave que evita duplicar el HTML del formulario entre `create` y `edit`:
+
+```blade
+<div class="mb-3">
+    <label for="nombre" class="form-label">Nombre</label>
+    <input type="text" name="nombre" id="nombre"
+           class="form-control @error('nombre') is-invalid @enderror"
+           value="{{ old('nombre', $cliente->nombre ?? '') }}">
+    @error('nombre')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+</div>
+
+<div class="mb-3">
+    <label for="nit" class="form-label">NIT</label>
+    <input type="text" name="nit" id="nit"
+           class="form-control @error('nit') is-invalid @enderror"
+           value="{{ old('nit', $cliente->nit ?? '') }}">
+    @error('nit')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" name="email" id="email"
+               class="form-control @error('email') is-invalid @enderror"
+               value="{{ old('email', $cliente->email ?? '') }}">
+        @error('email')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label for="telefono" class="form-label">Teléfono</label>
+        <input type="text" name="telefono" id="telefono"
+               class="form-control @error('telefono') is-invalid @enderror"
+               value="{{ old('telefono', $cliente->telefono ?? '') }}">
+        @error('telefono')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+</div>
+
+<div class="mb-3">
+    <label for="direccion" class="form-label">Dirección</label>
+    <input type="text" name="direccion" id="direccion"
+           class="form-control @error('direccion') is-invalid @enderror"
+           value="{{ old('direccion', $cliente->direccion ?? '') }}">
+    @error('direccion')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+</div>
+```
+
+**Detalles clave a explicar en clase:**
+- `old('nombre', $cliente->nombre ?? '')` — resuelve **dos casos a la vez**: si la validación falló y el usuario vuelve al formulario, `old()` repone lo que había escrito; si no hay `old()` (por ejemplo, entrando a editar por primera vez), usa el valor actual del `$cliente`. El `?? ''` cubre el caso de `create.blade.php`, donde `$cliente` ni siquiera existe.
+- `@error('campo') is-invalid @enderror` — agrega automáticamente la clase de Bootstrap que pone el borde rojo cuando ese campo específico falló la validación.
+- `<div class="invalid-feedback">` — es la clase de Bootstrap 5 que muestra el mensaje de error debajo del campo, pero **solo se muestra visualmente si el input tiene la clase `is-invalid`** — por eso ambas piezas (`is-invalid` + `invalid-feedback`) tienen que ir juntas.
+
+## 6. `resources/views/clientes/show.blade.php`
+
+```blade
+@extends('layouts.app')
+
+@section('title', 'Detalle del cliente')
+
+@section('content')
+    <h1 class="h3 mb-4">{{ $cliente->nombre }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">NIT</dt>
+                <dd class="col-sm-9">{{ $cliente->nit }}</dd>
+
+                <dt class="col-sm-3">Email</dt>
+                <dd class="col-sm-9">{{ $cliente->email ?? '—' }}</dd>
+
+                <dt class="col-sm-3">Teléfono</dt>
+                <dd class="col-sm-9">{{ $cliente->telefono ?? '—' }}</dd>
+
+                <dt class="col-sm-3">Dirección</dt>
+                <dd class="col-sm-9">{{ $cliente->direccion ?? '—' }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="{{ route('clientes.index') }}" class="btn btn-secondary">Volver</a>
+        <a href="{{ route('clientes.edit', $cliente) }}" class="btn btn-primary">Editar</a>
+    </div>
+@endsection
+```
+
+## Estructura final de carpetas
+
+```
+resources/views/
+├── layouts/
+│   └── app.blade.php
+└── clientes/
+    ├── index.blade.php
+    ├── create.blade.php
+    ├── edit.blade.php
+    ├── show.blade.php
+    └── _form.blade.php   ← parcial, no corresponde a ningún método del controlador
+```
+
+**Nota sobre el `_form.blade.php`:** la convención del guion bajo al inicio (`_form`) es solo una convención de la comunidad Laravel para señalar "esto es un parcial, no una vista completa" — Laravel no le da ningún tratamiento especial al nombre, es simplemente legible para otros desarrolladores.
+
+## Verificación en vivo
+
+```bash
+php artisan serve
+```
+
+Y navegar a `http://localhost:8000/clientes` — debería mostrar la tabla (vacía o con los clientes que ya sembraste con el seeder/factory), con el botón "Nuevo cliente" funcionando de extremo a extremo: crear → listar → ver → editar → eliminar.
+

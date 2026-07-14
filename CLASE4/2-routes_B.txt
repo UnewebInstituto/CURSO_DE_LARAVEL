@@ -1,0 +1,114 @@
+# Rutas en Laravel — Introducción
+
+## ¿Qué es una ruta?
+
+Una **ruta** es la definición de cómo Laravel responde a una petición HTTP hacia una URL específica. Es literalmente el punto de entrada de toda la aplicación: cuando alguien escribe una URL en el navegador o hace clic en un enlace, Laravel revisa su tabla de rutas (definida en `routes/web.php`) para decidir **qué código ejecutar** en respuesta.
+
+Toda ruta en Laravel se compone de tres elementos:
+
+1. **Verbo HTTP** — qué tipo de acción se está pidiendo (`GET` para ver algo, `POST` para enviar datos, etc.)
+2. **URI** — el patrón de la URL a la que responde
+3. **Acción** — qué código se ejecuta (una función anónima, o más común, un método de un controlador)
+
+## Sintaxis básica
+
+```php
+Route::get('/clientes', function () {
+    return 'Aquí va la lista de clientes';
+});
+```
+
+Esto es válido, pero en un proyecto real casi nunca se deja la lógica directamente en la ruta — se delega a un controlador, que es justo el enfoque que usamos en el proyecto de facturación:
+
+```php
+Route::get('/clientes', [ClienteController::class, 'index']);
+```
+
+## Cómo se resuelve un enlace, paso a paso
+
+Aquí está el flujo completo, usando un ejemplo concreto de nuestro sistema de facturación: un usuario hace clic en el enlace "Ver clientes" del menú.
+
+### 1. El enlace en la vista (Blade)
+
+```blade
+<a href="{{ route('clientes.index') }}" class="btn btn-primary">Ver clientes</a>
+```
+
+`route('clientes.index')` no es una URL escrita a mano — es una función de Laravel que **busca la ruta por su nombre** y genera la URL real correspondiente. En este caso, generaría `http://tuapp.test/clientes`.
+
+### 2. El navegador envía la petición
+
+Al hacer clic, el navegador envía:
+```
+GET /clientes
+```
+
+### 3. Laravel busca esa combinación (verbo + URI) en `routes/web.php`
+
+```php
+Route::resource('clientes', ClienteController::class);
+```
+
+Como vimos antes, esta línea internamente registra `GET /clientes` apuntando al método `index()` del `ClienteController`.
+
+### 4. Laravel ejecuta el método correspondiente
+
+```php
+public function index()
+{
+    $clientes = Cliente::paginate(15);
+    return view('clientes.index', compact('clientes'));
+}
+```
+
+### 5. El resultado (una vista HTML) se devuelve al navegador
+
+El estudiante ve la tabla de clientes renderizada con Bootstrap 5.
+
+## Ejemplo con parámetro — cómo se resuelve un enlace a un registro específico
+
+Este es el caso más ilustrativo para tu proyecto, porque conecta rutas con persistencia (Eloquent). Un enlace para ver el detalle de un cliente puntual:
+
+```blade
+{{-- En clientes/index.blade.php, dentro de un @foreach --}}
+<a href="{{ route('clientes.show', $cliente) }}" class="btn btn-sm btn-outline-secondary">
+    Ver detalle
+</a>
+```
+
+**Qué pasa aquí exactamente:**
+
+- `route('clientes.show', $cliente)` — el segundo argumento es el **modelo Eloquent completo** (`$cliente`), no solo su ID. Laravel es lo suficientemente inteligente para tomar automáticamente el `id` de ese objeto y construirlo en la URL.
+- Si `$cliente->id` es `7`, esto genera: `http://tuapp.test/clientes/7`
+
+Cuando el navegador visita esa URL:
+
+```php
+Route::resource('clientes', ClienteController::class);
+// internamente registra: GET /clientes/{cliente} → show()
+```
+
+```php
+public function show(Cliente $cliente)
+{
+    return view('clientes.show', compact('cliente'));
+}
+```
+
+Laravel toma el `7` de la URL, busca automáticamente `Cliente::find(7)` (esto es el **Route Model Binding** que mencionamos antes), y lo entrega ya resuelto como el parámetro `$cliente` — listo para usar en la vista, sin que el controlador tenga que hacer la consulta manualmente.
+
+## Resumen visual del recorrido completo
+
+```
+Vista Blade                Ruta nombrada         routes/web.php              Controlador
+─────────────              ──────────────         ───────────────             ───────────
+route('clientes.show',  →  clientes.show      →   GET /clientes/{cliente} →   show(Cliente $cliente)
+      $cliente)                                    → ClienteController              ↓
+                                                                              Eloquent ya resolvió
+                                                                              el modelo automáticamente
+```
+
+## Por qué esto importa
+
+Este flujo (enlace nombrado → ruta → controlador → modelo resuelto) es el patrón que se va a repetir constantemente durante el resto de las clases: formularios que apuntan a `route('clientes.store')`, botones de editar que apuntan a `route('clientes.edit', $cliente)`, botones de eliminar con `route('clientes.destroy', $cliente)`. Entender bien este ejemplo con `show` deja el terreno preparado para que el resto se sienta como una simple repetición del mismo concepto, cambiando solo el verbo HTTP y el método del controlador.
+

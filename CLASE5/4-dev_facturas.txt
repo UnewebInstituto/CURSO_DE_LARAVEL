@@ -1,0 +1,601 @@
+Este es el controlador más rico del curso porque une todo: relaciones Eloquent, formularios dinámicos con JavaScript, transacciones de base de datos, y actualización de stock. Vamos por partes.
+
+## 1. Modelos: relaciones y `$fillable`
+
+**`app/Models/Cliente.php`** (agregar la relación si aún no está):
+
+```php
+public function facturas(): \Illuminate\Database\Eloquent\Relations\HasMany
+{
+    return $this->hasMany(Factura::class);
+}
+```
+
+**`app/Models/Factura.php`**
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Factura extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'numero',
+        'cliente_id',
+        'fecha',
+        'total',
+        'estado',
+    ];
+
+    protected $casts = [
+        'fecha' => 'date',
+        'total' => 'decimal:2',
+    ];
+
+    public function cliente(): BelongsTo
+    {
+        return $this->belongsTo(Cliente::class);
+    }
+
+    public function detalles(): HasMany
+    {
+        return $this->hasMany(DetalleFactura::class);
+    }
+}
+```
+
+**`app/Models/DetalleFactura.php`**
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class DetalleFactura extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'factura_id',
+        'producto_id',
+        'cantidad',
+        'precio_unitario',
+        'subtotal',
+    ];
+
+    public function factura(): BelongsTo
+    {
+        return $this->belongsTo(Factura::class);
+    }
+
+    public function producto(): BelongsTo
+    {
+        return $this->belongsTo(Producto::class);
+    }
+}
+```
+
+## 2. `FacturaController` — el más elaborado
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Cliente;
+use App\Models\DetalleFactura;
+use App\Models\Factura;
+use App\Models\Producto;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+
+class FacturaController extends Controller
+{
+    public function index()
+    {
+        $facturas = Factura::with('cliente')
+            ->orderByDesc('fecha')
+            ->paginate(15);
+
+        return view('facturas.index', compact('facturas'));
+    }
+
+    public function create()
+    {
+        $clientes = Cliente::orderBy('nombre')->get();
+        $productos = Producto::where('stock', '>', 0)->orderBy('nombre')->get();
+
+        return view('facturas.create', compact('clientes', 'productos'));
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'cliente_id' => 'required|exists:clientes,id',
+            'fecha' => 'required|date',
+            'productos' => 'required|array|min:1',
+            'productos.*.producto_id' => 'required|exists:productos,id',
+            'productos.*.cantidad' => 'required|integer|min:1',
+        ]);
+
+        DB::transaction(function () use ($validated) {
+
+            $factura = Factura::create([
+                'numero' => 'FAC-' . str_pad((Factura::max('id') + 1), 5, '0', STR_PAD_LEFT),
+                'cliente_id' => $validated['cliente_id'],
+                'fecha' => $validated['fecha'],
+                'total' => 0,
+                'estado' => 'pendiente',
+            ]);
+
+            $total = 0;
+
+            foreach ($validated['productos'] as $linea) {
+                $producto = Producto::findOrFail($linea['producto_id']);
+                $subtotal = $producto->precio * $linea['cantidad'];
+
+                DetalleFactura::create([
+                    'factura_id' => $factura->id,
+                    'producto_id' => $producto->id,
+                    'cantidad' => $linea['cantidad'],
+                    'precio_unitario' => $producto->precio,
+                    'subtotal' => $subtotal,
+                ]);
+
+                $producto->decrement('stock', $linea['cantidad']);
+                $total += $subtotal;
+            }
+
+            $factura->update(['total' => $total]);
+        });
+
+        return redirect()->route('facturas.index')
+            ->with('success', 'Factura creada correctamente.');
+    }
+
+    public function show(Factura $factura)
+    {
+        $factura->load('cliente', 'detalles.producto');
+
+        return view('facturas.show', compact('factura'));
+    }
+
+    public function edit(Factura $factura)
+    {
+        $clientes = Cliente::orderBy('nombre')->get();
+        $productos = Producto::orderBy('nombre')->get();
+        $factura->load('detalles.producto');
+
+        return view('facturas.edit', compact('factura', 'clientes', 'productos'));
+    }
+
+    public function update(Request $request, Factura $factura)
+    {
+        $validated = $request->validate([
+            'cliente_id' => 'required|exists:clientes,id',
+            'fecha' => 'required|date',
+            'estado' => 'required|in:pendiente,pagada,anulada',
+        ]);
+
+        $factura->update($validated);
+
+        return redirect()->route('facturas.index')
+            ->with('success', 'Factura actualizada correctamente.');
+    }
+
+    public function destroy(Factura $factura)
+    {
+        DB::transaction(function () use ($factura) {
+            foreach ($factura->detalles as $detalle) {
+                $detalle->producto->increment('stock', $detalle->cantidad);
+            }
+            $factura->delete();
+        });
+
+        return redirect()->route('facturas.index')
+            ->with('success', 'Factura eliminada correctamente.');
+    }
+}
+```
+
+**Puntos clave para explicar en clase:**
+
+- **`DB::transaction(...)`** — envuelve la creación de la factura y todas sus líneas de detalle en una sola transacción SQL. Si algo falla a mitad de camino (por ejemplo, un producto sin stock suficiente), **todo se revierte**, evitando facturas "a medias" en la base de datos. Es el primer uso de transacciones en el curso — buen momento para explicar el concepto de atomicidad.
+- **`$producto->decrement('stock', ...)`** — método corto de Eloquent equivalente a `$producto->update(['stock' => $producto->stock - $cantidad])`, pero ejecutado de forma atómica a nivel de base de datos.
+- **`'productos.*.producto_id'` en las reglas de validación** — la sintaxis con `*` valida cada elemento de un array anidado (uno por cada línea de producto del formulario dinámico).
+- **`$factura->load('cliente', 'detalles.producto')`** — eager loading anidado: carga el cliente, y dentro de cada detalle, también su producto — todo en pocas consultas, evitando N+1.
+- **`destroy()` devuelve el stock** — decisión de negocio razonable para el curso: si se elimina una factura, los productos regresan al inventario.
+
+## 3. `resources/views/facturas/index.blade.php`
+
+```blade
+@extends('layouts.app')
+
+@section('title', 'Facturas')
+
+@section('content')
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">Facturas</h1>
+        <a href="{{ route('facturas.create') }}" class="btn btn-success">
+            + Nueva factura
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Número</th>
+                        <th>Cliente</th>
+                        <th>Fecha</th>
+                        <th>Total</th>
+                        <th>Estado</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($facturas as $factura)
+                        <tr>
+                            <td>{{ $factura->numero }}</td>
+                            <td>{{ $factura->cliente->nombre }}</td>
+                            <td>{{ $factura->fecha->format('d/m/Y') }}</td>
+                            <td>${{ number_format($factura->total, 2) }}</td>
+                            <td>
+                                @php
+                                    $badge = match($factura->estado) {
+                                        'pagada' => 'success',
+                                        'anulada' => 'danger',
+                                        default => 'warning',
+                                    };
+                                @endphp
+                                <span class="badge bg-{{ $badge }}">{{ ucfirst($factura->estado) }}</span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ route('facturas.show', $factura) }}" class="btn btn-sm btn-outline-secondary">Ver</a>
+                                <a href="{{ route('facturas.edit', $factura) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+                                <form action="{{ route('facturas.destroy', $factura) }}" method="POST" class="d-inline"
+                                      onsubmit="return confirm('¿Eliminar esta factura? El stock de los productos será restituido.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No hay facturas registradas todavía.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        {{ $facturas->links() }}
+    </div>
+@endsection
+```
+
+**Nota:** `$factura->fecha->format('d/m/Y')` funciona porque Laravel convierte automáticamente las columnas `date`/`datetime` en objetos `Carbon` — otro detalle útil de mencionar en clase.
+
+## 4. `resources/views/facturas/create.blade.php` — el formulario dinámico
+
+Este es el componente más avanzado del curso: agregar/quitar líneas de producto con JavaScript antes de enviar el formulario.
+
+```blade
+@extends('layouts.app')
+
+@section('title', 'Nueva factura')
+
+@section('content')
+    <h1 class="h3 mb-4">Nueva factura</h1>
+
+    <form action="{{ route('facturas.store') }}" method="POST">
+        @csrf
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="cliente_id" class="form-label">Cliente</label>
+                        <select name="cliente_id" id="cliente_id"
+                                class="form-select @error('cliente_id') is-invalid @enderror">
+                            <option value="">-- Seleccione --</option>
+                            @foreach ($clientes as $cliente)
+                                <option value="{{ $cliente->id }}" {{ old('cliente_id') == $cliente->id ? 'selected' : '' }}>
+                                    {{ $cliente->nombre }} ({{ $cliente->nit }})
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('cliente_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="fecha" class="form-label">Fecha</label>
+                        <input type="date" name="fecha" id="fecha"
+                               class="form-control @error('fecha') is-invalid @enderror"
+                               value="{{ old('fecha', date('Y-m-d')) }}">
+                        @error('fecha')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Productos</span>
+                <button type="button" class="btn btn-sm btn-success" onclick="agregarLinea()">+ Agregar producto</button>
+            </div>
+            <div class="card-body">
+                <table class="table" id="tabla-productos">
+                    <thead>
+                        <tr>
+                            <th style="width: 50%">Producto</th>
+                            <th style="width: 20%">Cantidad</th>
+                            <th style="width: 20%">Subtotal</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="lineas-productos"></tbody>
+                </table>
+                <p class="text-muted small mb-0" id="mensaje-vacio">Agrega al menos un producto.</p>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <button type="submit" class="btn btn-success">Guardar factura</button>
+            <a href="{{ route('facturas.index') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+
+    <!-- Preparamos el array de productos en un bloque PHP aislado, -->
+    <!-- para no mezclar la expresion con la misma linea del script -->
+    @php
+        $productosJson = $productos->map(fn ($p) => [
+            'id' => $p->id,
+            'nombre' => $p->nombre,
+            'precio' => $p->precio,
+            'stock' => $p->stock,
+        ]);
+    @endphp
+
+    <script>
+        const productosDisponibles = {!! json_encode($productosJson) !!};
+
+        @verbatim
+        let contador = 0;
+
+        function agregarLinea() {
+            const tbody = document.getElementById('lineas-productos');
+            const fila = document.createElement('tr');
+            fila.id = 'fila-' + contador;
+
+            let opciones = '<option value="">-- Producto --</option>';
+            productosDisponibles.forEach(p => {
+                opciones += `<option value="${p.id}" data-precio="${p.precio}" data-stock="${p.stock}">${p.nombre} — $${p.precio} (stock: ${p.stock})</option>`;
+            });
+
+            fila.innerHTML = `
+                <td>
+                    <select name="productos[${contador}][producto_id]" class="form-select" onchange="calcularSubtotal(${contador})" required>
+                        ${opciones}
+                    </select>
+                </td>
+                <td>
+                    <input type="number" name="productos[${contador}][cantidad]" class="form-control" min="1" value="1" onchange="calcularSubtotal(${contador})" required>
+                </td>
+                <td>
+                    <span id="subtotal-${contador}">$0.00</span>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="quitarLinea(${contador})">✕</button>
+                </td>
+            `;
+
+            tbody.appendChild(fila);
+            document.getElementById('mensaje-vacio').style.display = 'none';
+            contador++;
+        }
+
+        function quitarLinea(id) {
+            document.getElementById('fila-' + id).remove();
+        }
+
+        function calcularSubtotal(id) {
+            const fila = document.getElementById('fila-' + id);
+            const select = fila.querySelector('select');
+            const cantidad = fila.querySelector('input[type="number"]').value;
+            const precio = select.selectedOptions[0]?.dataset.precio || 0;
+            const subtotal = precio * cantidad;
+            document.getElementById('subtotal-' + id).textContent = '$' + subtotal.toFixed(2);
+        }
+
+        // Al menos una línea al cargar
+        agregarLinea();
+        @endverbatim
+    </script>
+@endsection
+```
+
+**Punto pedagógico importante:** este formulario mezcla Blade (renderiza el HTML inicial y pasa datos de PHP a JS con `@json`) con JavaScript vanilla (maneja la interactividad de agregar/quitar líneas). Vale la pena remarcar que **la validación real y definitiva ocurre en el servidor** (`FacturaController::store()`) — el JavaScript aquí solo mejora la experiencia de usuario, pero nunca hay que confiar en que el navegador validó correctamente, por la misma razón de seguridad que vimos con `$fillable`: cualquiera podría enviar un POST directo sin pasar por este formulario.
+
+## 5. `resources/views/facturas/show.blade.php`
+
+```blade
+@extends('layouts.app')
+
+@section('title', 'Detalle de factura')
+
+@section('content')
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-0">Factura {{ $factura->numero }}</h1>
+        @php
+            $badge = match($factura->estado) {
+                'pagada' => 'success',
+                'anulada' => 'danger',
+                default => 'warning',
+            };
+        @endphp
+        <span class="badge bg-{{ $badge }} fs-6">{{ ucfirst($factura->estado) }}</span>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-2">Cliente</dt>
+                <dd class="col-sm-4">{{ $factura->cliente->nombre }}</dd>
+
+                <dt class="col-sm-2">NIT</dt>
+                <dd class="col-sm-4">{{ $factura->cliente->nit }}</dd>
+
+                <dt class="col-sm-2">Fecha</dt>
+                <dd class="col-sm-4">{{ $factura->fecha->format('d/m/Y') }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">Productos</div>
+        <div class="card-body p-0">
+            <table class="table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio unitario</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($factura->detalles as $detalle)
+                        <tr>
+                            <td>{{ $detalle->producto->nombre }}</td>
+                            <td>{{ $detalle->cantidad }}</td>
+                            <td>${{ number_format($detalle->precio_unitario, 2) }}</td>
+                            <td>${{ number_format($detalle->subtotal, 2) }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+                <tfoot>
+                    <tr class="table-light">
+                        <th colspan="3" class="text-end">Total</th>
+                        <th>${{ number_format($factura->total, 2) }}</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="{{ route('facturas.index') }}" class="btn btn-secondary">Volver</a>
+        <a href="{{ route('facturas.edit', $factura) }}" class="btn btn-primary">Editar</a>
+    </div>
+@endsection
+```
+
+## 6. `resources/views/facturas/edit.blade.php` (simplificado)
+
+El `edit` solo permite cambiar cliente, fecha y estado — **no** las líneas de producto (editar el detalle ya facturado es una lógica de negocio más compleja, propia de un curso avanzado):
+
+```blade
+@extends('layouts.app')
+
+@section('title', 'Editar factura')
+
+@section('content')
+    <h1 class="h3 mb-4">Editar factura {{ $factura->numero }}</h1>
+
+    <div class="alert alert-info">
+        Solo se pueden modificar el cliente, la fecha y el estado. Las líneas de productos no son editables una vez facturadas.
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form action="{{ route('facturas.update', $factura) }}" method="POST">
+                @csrf
+                @method('PUT')
+
+                <div class="mb-3">
+                    <label for="cliente_id" class="form-label">Cliente</label>
+                    <select name="cliente_id" id="cliente_id" class="form-select @error('cliente_id') is-invalid @enderror">
+                        @foreach ($clientes as $cliente)
+                            <option value="{{ $cliente->id }}" {{ old('cliente_id', $factura->cliente_id) == $cliente->id ? 'selected' : '' }}>
+                                {{ $cliente->nombre }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('cliente_id')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="mb-3">
+                    <label for="fecha" class="form-label">Fecha</label>
+                    <input type="date" name="fecha" id="fecha"
+                           class="form-control @error('fecha') is-invalid @enderror"
+                           value="{{ old('fecha', $factura->fecha->format('Y-m-d')) }}">
+                    @error('fecha')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="mb-3">
+                    <label for="estado" class="form-label">Estado</label>
+                    <select name="estado" id="estado" class="form-select @error('estado') is-invalid @enderror">
+                        @foreach (['pendiente', 'pagada', 'anulada'] as $estado)
+                            <option value="{{ $estado }}" {{ old('estado', $factura->estado) == $estado ? 'selected' : '' }}>
+                                {{ ucfirst($estado) }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('estado')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Actualizar</button>
+                    <a href="{{ route('facturas.index') }}" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+@endsection
+```
+
+## Registrar la ruta (si aún falta)
+
+```php
+Route::resource('facturas', FacturaController::class);
+```
+
+## Verificación
+
+```bash
+php artisan route:list --name=facturas
+```
+
+Y probar el flujo completo en `http://localhost:8000/facturas/create` — seleccionar cliente, agregar 2-3 líneas de producto con el botón dinámico, y confirmar que al guardar: se crea la factura, se calculan los subtotales y el total correctamente, y el stock de cada producto se descuenta.
+
+## Puntos de cierre para la clase
+
+Este controlador es el mejor ejemplo del curso para ilustrar cómo **todos los temas se integran**: rutas resource, validación con arrays anidados, Eloquent con relaciones múltiples (`belongsTo`, `hasMany`), transacciones de base de datos, y Bootstrap 5 con JavaScript para interactividad — es el cierre natural de las 15 horas, mostrando el sistema de facturación funcionando de punta a punta.
+

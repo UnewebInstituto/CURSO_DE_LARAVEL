@@ -1,0 +1,175 @@
+Vamos a generar los 3 controladores resource para las entidades principales del proyecto (recordemos que `DetalleFactura` no necesita uno propio, se gestiona dentro de `Factura`).
+
+## Comandos para generar los controladores
+
+```bash
+php artisan make:controller ClienteController --resource --model=Cliente
+php artisan make:controller ProductoController --resource --model=Producto
+php artisan make:controller FacturaController --resource --model=Factura
+```
+
+**Qué hace el flag `--resource`:** genera automáticamente los 7 métodos que corresponden exactamente a las 7 rutas que vimos con `Route::resource` — `index`, `create`, `store`, `show`, `edit`, `update`, `destroy` — cada uno vacío, listo para completar.
+
+**Qué hace el flag `--model=Cliente`:** le dice a Laravel que **tipee automáticamente** los métodos que reciben un parámetro (como `show`, `edit`, `update`, `destroy`) usando `Cliente $cliente` en vez de un genérico `$id` — esto es lo que activa el Route Model Binding automático que ya explicamos, sin que tengas que escribirlo a mano.
+
+## Así queda el `ClienteController` recién generado (esqueleto)
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Cliente;
+use Illuminate\Http\Request;
+
+class ClienteController extends Controller
+{
+    public function index()
+    {
+        //
+    }
+
+    public function create()
+    {
+        //
+    }
+
+    public function store(Request $request)
+    {
+        //
+    }
+
+    public function show(Cliente $cliente)
+    {
+        //
+    }
+
+    public function edit(Cliente $cliente)
+    {
+        //
+    }
+
+    public function update(Request $request, Cliente $cliente)
+    {
+        //
+    }
+
+    public function destroy(Cliente $cliente)
+    {
+        //
+    }
+}
+```
+
+Fíjate que `show`, `edit`, `update` y `destroy` ya vienen con `Cliente $cliente` en la firma — eso confirma que el flag `--model` funcionó correctamente.
+
+## Completando `ClienteController` con lo que ya construimos
+
+Ahora llenamos la lógica real, conectando todo lo que ya vimos (paginación, `route()`, validación básica):
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Cliente;
+use Illuminate\Http\Request;
+
+class ClienteController extends Controller
+{
+    public function index()
+    {
+        $clientes = Cliente::paginate(15);
+        return view('clientes.index', compact('clientes'));
+    }
+
+    public function create()
+    {
+        return view('clientes.create');
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'nombre' => 'required|string|max:255',
+            'nit' => 'required|string|unique:clientes,nit',
+            'email' => 'nullable|email',
+            'telefono' => 'nullable|string|max:20',
+            'direccion' => 'nullable|string|max:255',
+        ]);
+
+        Cliente::create($validated);
+
+        return redirect()->route('clientes.index')
+            ->with('success', 'Cliente creado correctamente.');
+    }
+
+    public function show(Cliente $cliente)
+    {
+        return view('clientes.show', compact('cliente'));
+    }
+
+    public function edit(Cliente $cliente)
+    {
+        return view('clientes.edit', compact('cliente'));
+    }
+
+    public function update(Request $request, Cliente $cliente)
+    {
+        $validated = $request->validate([
+            'nombre' => 'required|string|max:255',
+            'nit' => 'required|string|unique:clientes,nit,' . $cliente->id,
+            'email' => 'nullable|email',
+            'telefono' => 'nullable|string|max:20',
+            'direccion' => 'nullable|string|max:255',
+        ]);
+
+        $cliente->update($validated);
+
+        return redirect()->route('clientes.index')
+            ->with('success', 'Cliente actualizado correctamente.');
+    }
+
+    public function destroy(Cliente $cliente)
+    {
+        $cliente->delete();
+
+        return redirect()->route('clientes.index')
+            ->with('success', 'Cliente eliminado correctamente.');
+    }
+}
+```
+
+**Detalles a considerar sobre este código:**
+
+- `$request->validate([...])` — si falla, Laravel automáticamente redirige de vuelta al formulario con los errores (usa `session()->flash()` internamente) y **repopula los campos** con lo que el usuario ya había escrito, sin que tengas que hacer nada extra.
+- `unique:clientes,nit,' . $cliente->id` en `update()` — exactamente el detalle que vimos con los Form Requests, para que el cliente no choque contra su propio NIT al editarse.
+- `->with('success', '...')` — deja un mensaje flash en sesión, disponible solo en el siguiente request. En la vista Blade se mostraría así:
+  ```blade
+  @if (session('success'))
+      <div class="alert alert-success">{{ session('success') }}</div>
+  @endif
+  ```
+  (usando la clase `alert alert-success` de Bootstrap 5, ya que estamos con ese enfoque)
+
+## Registrando las rutas
+
+```php
+// routes/web.php
+use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\ProductoController;
+use App\Http\Controllers\FacturaController;
+
+Route::resource('clientes', ClienteController::class);
+Route::resource('productos', ProductoController::class);
+Route::resource('facturas', FacturaController::class);
+```
+
+## Verificación
+
+```bash
+php artisan route:list --name=clientes
+```
+
+Deberías ver las 7 rutas apuntando correctamente a los métodos del controlador que acabamos de completar.
+

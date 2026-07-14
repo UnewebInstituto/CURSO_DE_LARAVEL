@@ -1,0 +1,346 @@
+Vamos con `Producto`, siguiendo exactamente el mismo patrón que armamos para `Cliente` — controlador, y luego las 4 vistas Blade con Bootstrap 5.
+
+## 1. Revisar/completar el modelo `Producto.php`
+
+Antes de seguir, aplicamos la lección que acabamos de aprender con `Cliente` — agregamos `$fillable` desde ya, para no toparnos con el mismo `MassAssignmentException`:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Producto extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'nombre',
+        'descripcion',
+        'precio',
+        'stock',
+    ];
+}
+```
+
+## 2. Generar el controlador (si aún no existe)
+
+```bash
+php artisan make:controller ProductoController --resource --model=Producto
+```
+
+## 3. `ProductoController` completo
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Producto;
+use Illuminate\Http\Request;
+
+class ProductoController extends Controller
+{
+    public function index()
+    {
+        $productos = Producto::paginate(15);
+        return view('productos.index', compact('productos'));
+    }
+
+    public function create()
+    {
+        return view('productos.create');
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
+            'precio' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+        ]);
+
+        Producto::create($validated);
+
+        return redirect()->route('productos.index')
+            ->with('success', 'Producto creado correctamente.');
+    }
+
+    public function show(Producto $producto)
+    {
+        return view('productos.show', compact('producto'));
+    }
+
+    public function edit(Producto $producto)
+    {
+        return view('productos.edit', compact('producto'));
+    }
+
+    public function update(Request $request, Producto $producto)
+    {
+        $validated = $request->validate([
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
+            'precio' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+        ]);
+
+        $producto->update($validated);
+
+        return redirect()->route('productos.index')
+            ->with('success', 'Producto actualizado correctamente.');
+    }
+
+    public function destroy(Producto $producto)
+    {
+        $producto->delete();
+
+        return redirect()->route('productos.index')
+            ->with('success', 'Producto eliminado correctamente.');
+    }
+}
+```
+
+**Diferencia a remarcar respecto a `Cliente`:** aquí usamos `numeric` para `precio` (acepta decimales) e `integer` para `stock` (solo números enteros) — buen momento para reforzar que las reglas de validación deben coincidir con el tipo de dato real de la columna en la migración (`decimal(10,2)` y `integer` respectivamente).
+
+## 4. `resources/views/productos/index.blade.php`
+
+```blade
+@extends('layouts.app')
+
+@section('title', 'Productos')
+
+@section('content')
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">Productos</h1>
+        <a href="{{ route('productos.create') }}" class="btn btn-success">
+            + Nuevo producto
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Precio</th>
+                        <th>Stock</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($productos as $producto)
+                        <tr>
+                            <td>{{ $producto->nombre }}</td>
+                            <td>${{ number_format($producto->precio, 2) }}</td>
+                            <td>
+                                @if ($producto->stock > 0)
+                                    <span class="badge bg-success">{{ $producto->stock }}</span>
+                                @else
+                                    <span class="badge bg-danger">Agotado</span>
+                                @endif
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ route('productos.show', $producto) }}" class="btn btn-sm btn-outline-secondary">
+                                    Ver
+                                </a>
+                                <a href="{{ route('productos.edit', $producto) }}" class="btn btn-sm btn-outline-primary">
+                                    Editar
+                                </a>
+                                <form action="{{ route('productos.destroy', $producto) }}" method="POST" class="d-inline"
+                                      onsubmit="return confirm('¿Eliminar este producto?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                                        Eliminar
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                No hay productos registrados todavía.
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        {{ $productos->links() }}
+    </div>
+@endsection
+```
+
+**Detalle nuevo respecto a `clientes/index`:** el badge de Bootstrap (`badge bg-success` / `bg-danger`) según el stock — un ejemplo simple y visual de lógica condicional en Blade que conecta directamente con datos reales, bueno para mostrar en clase.
+
+## 5. `resources/views/productos/create.blade.php`
+
+```blade
+@extends('layouts.app')
+
+@section('title', 'Nuevo producto')
+
+@section('content')
+    <h1 class="h3 mb-4">Nuevo producto</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form action="{{ route('productos.store') }}" method="POST">
+                @csrf
+                @include('productos._form')
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-success">Guardar</button>
+                    <a href="{{ route('productos.index') }}" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+@endsection
+```
+
+## 6. `resources/views/productos/edit.blade.php`
+
+```blade
+@extends('layouts.app')
+
+@section('title', 'Editar producto')
+
+@section('content')
+    <h1 class="h3 mb-4">Editar producto</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form action="{{ route('productos.update', $producto) }}" method="POST">
+                @csrf
+                @method('PUT')
+                @include('productos._form')
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Actualizar</button>
+                    <a href="{{ route('productos.index') }}" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+@endsection
+```
+
+## 7. `resources/views/productos/_form.blade.php`
+
+```blade
+<div class="mb-3">
+    <label for="nombre" class="form-label">Nombre</label>
+    <input type="text" name="nombre" id="nombre"
+           class="form-control @error('nombre') is-invalid @enderror"
+           value="{{ old('nombre', $producto->nombre ?? '') }}">
+    @error('nombre')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+</div>
+
+<div class="mb-3">
+    <label for="descripcion" class="form-label">Descripción</label>
+    <textarea name="descripcion" id="descripcion" rows="3"
+              class="form-control @error('descripcion') is-invalid @enderror">{{ old('descripcion', $producto->descripcion ?? '') }}</textarea>
+    @error('descripcion')
+        <div class="invalid-feedback">{{ $message }}</div>
+    @enderror
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label for="precio" class="form-label">Precio</label>
+        <div class="input-group">
+            <span class="input-group-text">$</span>
+            <input type="number" step="0.01" min="0" name="precio" id="precio"
+                   class="form-control @error('precio') is-invalid @enderror"
+                   value="{{ old('precio', $producto->precio ?? '') }}">
+            @error('precio')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-3">
+        <label for="stock" class="form-label">Stock</label>
+        <input type="number" min="0" name="stock" id="stock"
+               class="form-control @error('stock') is-invalid @enderror"
+               value="{{ old('stock', $producto->stock ?? '0') }}">
+        @error('stock')
+            <div class="invalid-feedback">{{ $message }}</div>
+        @enderror
+    </div>
+</div>
+```
+
+**Detalle nuevo a mostrar en clase:** el `input-group` de Bootstrap con el símbolo `$` pegado al campo de precio — un componente visual que conecta directo con el tipo de dato (`decimal`) que definimos en la migración, y refuerza visualmente que ese campo es dinero.
+
+## 8. `resources/views/productos/show.blade.php`
+
+```blade
+@extends('layouts.app')
+
+@section('title', 'Detalle del producto')
+
+@section('content')
+    <h1 class="h3 mb-4">{{ $producto->nombre }}</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Descripción</dt>
+                <dd class="col-sm-9">{{ $producto->descripcion ?? '—' }}</dd>
+
+                <dt class="col-sm-3">Precio</dt>
+                <dd class="col-sm-9">${{ number_format($producto->precio, 2) }}</dd>
+
+                <dt class="col-sm-3">Stock</dt>
+                <dd class="col-sm-9">{{ $producto->stock }}</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="{{ route('productos.index') }}" class="btn btn-secondary">Volver</a>
+        <a href="{{ route('productos.edit', $producto) }}" class="btn btn-primary">Editar</a>
+    </div>
+@endsection
+```
+
+## Estructura final de carpetas
+
+```
+resources/views/
+├── layouts/
+│   └── app.blade.php
+├── clientes/
+│   ├── index.blade.php
+│   ├── create.blade.php
+│   ├── edit.blade.php
+│   ├── show.blade.php
+│   └── _form.blade.php
+└── productos/
+    ├── index.blade.php
+    ├── create.blade.php
+    ├── edit.blade.php
+    ├── show.blade.php
+    └── _form.blade.php
+```
+
+## Verificación
+
+```bash
+php artisan route:list --name=productos
+```
+
+Y navegar a `http://localhost:8000/productos` para probar el flujo completo: crear → listar (con el badge de stock) → ver → editar → eliminar.
+
