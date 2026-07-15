@@ -13,6 +13,8 @@ class ProductoController extends Controller
     public function index()
     {
         //
+        $productos = Producto::paginate(15);
+        return view('productos.index', compact('productos'));
     }
 
     /**
@@ -21,6 +23,7 @@ class ProductoController extends Controller
     public function create()
     {
         //
+        return view('productos.create');
     }
 
     /**
@@ -29,6 +32,17 @@ class ProductoController extends Controller
     public function store(Request $request)
     {
         //
+            $validated = $request->validate([
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
+            'precio' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+        ]);
+
+        Producto::create($validated);
+
+        return redirect()->route('productos.index')
+            ->with('success', 'Producto creado correctamente.');
     }
 
     /**
@@ -37,6 +51,7 @@ class ProductoController extends Controller
     public function show(Producto $producto)
     {
         //
+        return view('productos.show', compact('producto'));
     }
 
     /**
@@ -45,6 +60,7 @@ class ProductoController extends Controller
     public function edit(Producto $producto)
     {
         //
+        return view('productos.edit', compact('producto'));
     }
 
     /**
@@ -53,6 +69,17 @@ class ProductoController extends Controller
     public function update(Request $request, Producto $producto)
     {
         //
+        $validated = $request->validate([
+            'nombre' => 'required|string|max:255',
+            'descripcion' => 'nullable|string',
+            'precio' => 'required|numeric|min:0',
+            'stock' => 'required|integer|min:0',
+        ]);
+
+        $producto->update($validated);
+
+        return redirect()->route('productos.index')
+            ->with('success', 'Producto actualizado correctamente.');
     }
 
     /**
@@ -61,5 +88,9 @@ class ProductoController extends Controller
     public function destroy(Producto $producto)
     {
         //
+        $producto->delete();
+
+        return redirect()->route('productos.index')
+            ->with('success', 'Producto eliminado correctamente.');
     }
 }

@@ -3,9 +3,18 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\ClienteController;
+use App\Http\Controllers\ProductoController;
+use App\Http\Controllers\FacturaController;
 
+/*
 Route::get('/', function () {
-    return view('welcome');
+    //return view('welcome');
+});
+*/
+
+// Cargar directamente el proyecto
+Route::get('/', function () {
+    return redirect()->route('facturas.index');
 });
 
 // PRUEBA 1
